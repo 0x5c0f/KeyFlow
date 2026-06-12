@@ -16,7 +16,15 @@ type = "bitwarden"
 # cli_path = "bw"
 
 # Hotkey bindings
+# Hotkey format: single keys (F7, F8) or combinations (Ctrl+Shift+F7)
+# Supported modifiers: Ctrl, Shift, Alt, Super
 [[bindings]]
 name = "example-clipboard"
-hotkey = "F9"
+hotkey = "Ctrl+Shift+F9"
 provider = "clipboard"
+
+# [[bindings]]
+# name = "my-server"
+# hotkey = "F7"
+# provider = "bitwarden"
+# item_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"

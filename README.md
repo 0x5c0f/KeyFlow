@@ -89,7 +89,25 @@ keyflow bind add --name "my-server" --hotkey "F7" --provider clipboard
 
 # Bitwarden 模式 — 直接从 Bitwarden 获取密码
 keyflow bind add --name "vnc-server" --hotkey "F8" --provider bitwarden --item-id "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+
+# 组合键 — 使用修饰键
+keyflow bind add --name "secure" --hotkey "Ctrl+Shift+F7" --provider clipboard
 ```
+
+### 热键格式
+
+支持单键和组合键，用 `+` 连接修饰键：
+
+| 格式 | 示例 | 说明 |
+|------|------|------|
+| 单键 | `F7` | 功能键直接使用 |
+| 修饰键+键 | `Ctrl+F7` | 一个修饰键 |
+| 多修饰键+键 | `Ctrl+Shift+F7` | 多个修饰键 |
+| 修饰键+字母 | `Ctrl+P` | 修饰键+普通键 |
+
+**支持的修饰键：** `Ctrl`、`Shift`、`Alt`、`Super`
+
+> **注意：** 当前版本的热键管理器是 stub 实现，组合键的实际匹配尚未接入 X11 事件循环。
 
 查看绑定：
 ```bash
@@ -145,13 +163,13 @@ type = "bitwarden"
 
 [[bindings]]
 name = "my-server"
-hotkey = "F7"
+hotkey = "F7"                                # 单键
 provider = "bitwarden"
 item_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
 
 [[bindings]]
 name = "from-clipboard"
-hotkey = "F9"
+hotkey = "Ctrl+Shift+F9"                     # 组合键
 provider = "clipboard"
 ```
 
