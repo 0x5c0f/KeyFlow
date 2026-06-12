@@ -4,9 +4,12 @@
 pub mod linux;
 
 use crate::error::KeyflowError;
+use std::sync::Arc;
 
 /// Callback type for hotkey events.
 pub type HotkeyCallback = Box<dyn Fn() + Send + Sync>;
+
+use std::sync::atomic::AtomicBool;
 
 /// Trait for global hotkey managers.
 pub trait HotkeyManager: Send {
@@ -18,6 +21,9 @@ pub trait HotkeyManager: Send {
 
     /// Signal the event loop to stop.
     fn stop(&self);
+
+    /// Get a reference to the running flag (for external stop control).
+    fn running_flag(&self) -> Arc<AtomicBool>;
 }
 
 /// Create the platform-appropriate HotkeyManager.

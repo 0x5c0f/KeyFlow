@@ -51,4 +51,8 @@ impl HotkeyManager for LinuxHotkeyManager {
     fn stop(&self) {
         self.running.store(false, Ordering::SeqCst);
     }
+
+    fn running_flag(&self) -> Arc<AtomicBool> {
+        self.running.clone()
+    }
 }

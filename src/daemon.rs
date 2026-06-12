@@ -102,17 +102,25 @@ pub fn run(config: Config) -> Result<(), KeyflowError> {
 
     log::info!("KeyFlow daemon running. Press Ctrl+C to stop.");
 
-    // Handle Ctrl+C
-    let running = Arc::new(std::sync::atomic::AtomicBool::new(true));
-    let r = running.clone();
+    // Handle Ctrl+C — call hotkey_mgr.stop() to break the event loop
+    let stop_flag = Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let stop_flag_clone = stop_flag.clone();
     ctrlc::set_handler(move || {
-        r.store(false, std::sync::atomic::Ordering::SeqCst);
+        stop_flag_clone.store(true, std::sync::atomic::Ordering::SeqCst);
     })
     .map_err(|e| {
         KeyflowError::Io(std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))
     })?;
 
-    // Run the event loop
+    // Run the event loop in a thread so we can monitor the stop flag
+    let running = hotkey_mgr.running_flag();
+    std::thread::spawn(move || {
+        while !stop_flag.load(std::sync::atomic::Ordering::SeqCst) {
+            std::thread::sleep(std::time::Duration::from_millis(100));
+        }
+        running.store(false, std::sync::atomic::Ordering::SeqCst);
+    });
+
     hotkey_mgr.run()?;
 
     Ok(())
