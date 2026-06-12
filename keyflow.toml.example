@@ -1,0 +1,22 @@
+# keyflow.toml — KeyFlow configuration example
+# Place at: ~/.config/keyflow/keyflow.toml (Linux)
+
+# Global settings
+[settings]
+clipboard_clear_after_secs = 5
+
+# Clipboard provider (reads from system clipboard)
+[[providers]]
+type = "clipboard"
+
+# Bitwarden provider (uses `bw` CLI)
+# Requires BW_PASSWORD env var for auto-unlock
+[[providers]]
+type = "bitwarden"
+# cli_path = "bw"
+
+# Hotkey bindings
+[[bindings]]
+name = "example-clipboard"
+hotkey = "F9"
+provider = "clipboard"
