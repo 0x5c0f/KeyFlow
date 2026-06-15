@@ -1,5 +1,7 @@
 //! Global hotkey management.
 
+pub mod keys;
+
 #[cfg(target_os = "linux")]
 pub mod linux;
 
@@ -27,10 +29,10 @@ pub trait HotkeyManager: Send {
 }
 
 /// Create the platform-appropriate HotkeyManager.
-pub fn create_hotkey_manager() -> Box<dyn HotkeyManager> {
+pub fn create_hotkey_manager() -> Result<Box<dyn HotkeyManager>, KeyflowError> {
     #[cfg(target_os = "linux")]
     {
-        Box::new(linux::LinuxHotkeyManager::new())
+        Ok(Box::new(linux::LinuxHotkeyManager::new()?))
     }
 
     #[cfg(target_os = "windows")]

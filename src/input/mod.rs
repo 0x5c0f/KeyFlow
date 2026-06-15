@@ -15,6 +15,9 @@ pub trait InputEngine: Send + Sync {
 
     /// Type text by simulating keystrokes.
     fn type_text(&self, text: &str) -> Result<(), InputError>;
+
+    /// Paste text from clipboard by simulating Ctrl+V.
+    fn paste_from_clipboard(&self) -> Result<(), InputError>;
 }
 
 /// Create the platform-appropriate InputEngine.
@@ -42,5 +45,9 @@ impl InputEngine for EnigoEngine {
 
     fn type_text(&self, text: &str) -> Result<(), InputError> {
         keyboard::type_text(text)
+    }
+
+    fn paste_from_clipboard(&self) -> Result<(), InputError> {
+        keyboard::paste_from_clipboard()
     }
 }

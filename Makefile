@@ -26,15 +26,15 @@ fmt:
 clippy:
 	cargo clippy -- -D warnings
 
-# 安装到系统（默认 /usr/local/bin）
-PREFIX ?= /usr/local
+# 安装到用户目录（默认 ~/.local/bin，无需 sudo）
+PREFIX ?= $(HOME)/.local
 install: release
-	install -d $(DESTDIR)$(PREFIX)/bin
-	install -m 755 target/release/keyflow $(DESTDIR)$(PREFIX)/bin/keyflow
+	install -d $(PREFIX)/bin
+	install -m 755 target/release/keyflow $(PREFIX)/bin/keyflow
 
 # 卸载
 uninstall:
-	rm -f $(DESTDIR)$(PREFIX)/bin/keyflow
+	rm -f $(PREFIX)/bin/keyflow
 
 # 清理构建产物
 clean:
@@ -64,8 +64,8 @@ help:
 	@echo "  make fmt        检查代码格式"
 	@echo "  make fmt-fix    自动格式化代码"
 	@echo "  make clippy     运行 clippy 静态分析"
-	@echo "  make install    安装到系统（默认 /usr/local/bin）"
-	@echo "  make uninstall  从系统卸载"
+	@echo "  make install    安装到 ~/.local/bin（无需 sudo）"
+	@echo "  make uninstall  从 ~/.local/bin 卸载"
 	@echo "  make clean      清理构建产物"
 	@echo "  make run        开发模式运行"
 	@echo "  make doc        生成并打开文档"

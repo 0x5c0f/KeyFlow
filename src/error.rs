@@ -18,6 +18,9 @@ pub enum KeyflowError {
     #[error("Hotkey registration failed: {hotkey} — {reason}")]
     HotkeyRegistration { hotkey: String, reason: String },
 
+    #[error("Hotkey parse error: {input} — {reason}")]
+    HotkeyParse { input: String, reason: String },
+
     #[error("Provider error: {0}")]
     Provider(#[from] ProviderError),
 
@@ -39,6 +42,9 @@ pub enum ProviderError {
 
     #[error("Clipboard is empty")]
     ClipboardEmpty,
+
+    #[error("Clipboard error: {0}")]
+    ClipboardError(String),
 
     #[error("bw command failed: {stderr}")]
     BitwardenCliError { stderr: String },

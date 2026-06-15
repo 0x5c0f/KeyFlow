@@ -50,7 +50,7 @@ sudo pacman -S xdotool
 git clone https://github.com/your-user/keyflow.git
 cd keyflow
 make build
-sudo make install  # 安装到 /usr/local/bin/
+make install  # 安装到 ~/.local/bin/（无需 sudo）
 ```
 
 ### 开发模式

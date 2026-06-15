@@ -15,15 +15,11 @@ impl ClipboardProvider {
 impl PasswordProvider for ClipboardProvider {
     fn get_password(&self) -> Result<String, ProviderError> {
         let mut clipboard = arboard::Clipboard::new().map_err(|e| {
-            ProviderError::BitwardenCliError {
-                stderr: format!("Failed to access clipboard: {e}"),
-            }
+            ProviderError::ClipboardError(format!("Failed to access clipboard: {e}"))
         })?;
 
         let text = clipboard.get_text().map_err(|e| {
-            ProviderError::BitwardenCliError {
-                stderr: format!("Failed to read clipboard: {e}"),
-            }
+            ProviderError::ClipboardError(format!("Failed to read clipboard: {e}"))
         })?;
 
         let text = text.trim().to_string();

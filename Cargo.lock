@@ -603,6 +603,7 @@ dependencies = [
  "tempfile",
  "thiserror",
  "toml",
+ "x11rb",
 ]
 
 [[package]]
