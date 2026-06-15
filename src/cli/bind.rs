@@ -1,4 +1,4 @@
-use crate::config::binding::Binding;
+use crate::config::binding::{Binding, InputMode};
 use crate::config::Config;
 use crate::cli::BindCommands;
 use anyhow::Result;
@@ -17,7 +17,7 @@ pub fn execute(command: BindCommands) -> Result<()> {
 
     match command {
         BindCommands::Add { name, hotkey, provider, item_id } => {
-            let binding = Binding { name, hotkey, provider, item_id };
+            let binding = Binding { name, hotkey, provider, item_id, input_mode: InputMode::default() };
             config.bindings.push(binding);
             config.save(&config_path)?;
             println!("Binding added: {} ({})", config.bindings.last().unwrap().name, config.bindings.last().unwrap().hotkey);

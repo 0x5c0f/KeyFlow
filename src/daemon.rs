@@ -3,6 +3,7 @@
 //! The daemon loads config, registers hotkeys, and enters the event loop.
 //! Each hotkey triggers: mouse click at cursor -> get password -> type password.
 
+use crate::config::binding::InputMode;
 use crate::config::{Config, ProviderConfig};
 use crate::error::KeyflowError;
 use crate::hotkey;
@@ -49,6 +50,7 @@ pub fn run(config: Config) -> Result<(), KeyflowError> {
         let binding_hotkey = binding.hotkey.clone();
         let item_id = binding.item_id.clone();
         let clear_secs = config.settings.clipboard_clear_after_secs;
+        let input_mode = binding.input_mode;
 
         let callback: hotkey::HotkeyCallback = Box::new(move || {
             log::info!("=== Hotkey triggered: {binding_hotkey} ({binding_name}) ===");
@@ -99,10 +101,27 @@ pub fn run(config: Config) -> Result<(), KeyflowError> {
                 }
             };
 
-            // 5. Type the password character by character
-            log::debug!("[{binding_name}] Step 5: Typing password ({} chars)...", password.len());
-            if let Err(e) = input.type_text(&password) {
-                log::error!("[{binding_name}] Failed to type password: {e}");
+            // 5. Input text using the configured mode
+            log::debug!("[{binding_name}] Step 5: Input mode={input_mode:?}, text_len={}", password.len());
+            let input_result = match input_mode {
+                InputMode::Type | InputMode::Auto => {
+                    log::debug!("[{binding_name}] Typing character by character...");
+                    input.type_text(&password)
+                }
+                InputMode::Paste => {
+                    log::debug!("[{binding_name}] Pasting via clipboard + Ctrl+V...");
+                    // Write to clipboard, then simulate Ctrl+V
+                    match arboard::Clipboard::new().and_then(|mut cb| cb.set_text(&password)) {
+                        Ok(_) => {
+                            std::thread::sleep(std::time::Duration::from_millis(50));
+                            input.paste_from_clipboard()
+                        }
+                        Err(e) => Err(crate::error::InputError::KeystrokeFailed(e.to_string())),
+                    }
+                }
+            };
+            if let Err(e) = input_result {
+                log::error!("[{binding_name}] Failed to input text: {e}");
                 return;
             }
 

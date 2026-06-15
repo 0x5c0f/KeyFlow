@@ -1,4 +1,4 @@
-use keyflow::config::binding::Binding;
+use keyflow::config::binding::{Binding, InputMode};
 
 #[test]
 fn test_binding_creation() {
@@ -7,11 +7,13 @@ fn test_binding_creation() {
         hotkey: "F7".to_string(),
         provider: "clipboard".to_string(),
         item_id: None,
+        input_mode: InputMode::default(),
     };
     assert_eq!(binding.name, "test");
     assert_eq!(binding.hotkey, "F7");
     assert_eq!(binding.provider, "clipboard");
     assert!(binding.item_id.is_none());
+    assert_eq!(binding.input_mode, InputMode::Auto);
 }
 
 #[test]
@@ -21,8 +23,10 @@ fn test_binding_with_item_id() {
         hotkey: "F8".to_string(),
         provider: "bitwarden".to_string(),
         item_id: Some("abc-123".to_string()),
+        input_mode: InputMode::Type,
     };
     assert_eq!(binding.item_id.as_deref(), Some("abc-123"));
+    assert_eq!(binding.input_mode, InputMode::Type);
 }
 
 use keyflow::config::{Config, Settings};
