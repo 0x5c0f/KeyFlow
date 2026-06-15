@@ -1,30 +1,74 @@
-# keyflow.toml — KeyFlow configuration example
-# Place at: ~/.config/keyflow/keyflow.toml (Linux)
+# keyflow.toml — KeyFlow 配置示例
+# 完整路径：~/.config/keyflow/keyflow.toml
 
-# Global settings
+# ==================== 全局设置 ====================
+
 [settings]
+# 剪贴板清理延迟（秒）。输入完成后等待指定时间后清空剪贴板。
+# 0 = 不清理。binding 级别的 clipboard_clear_after_secs 会覆盖此值。
 clipboard_clear_after_secs = 5
 
-# Clipboard provider (reads from system clipboard)
+# ==================== 密码提供者 ====================
+
+# 剪贴板提供者 — 从系统剪贴板读取密码
 [[providers]]
 type = "clipboard"
 
-# Bitwarden provider (uses `bw` CLI)
-# Requires BW_PASSWORD env var for auto-unlock
+# Bitwarden 提供者 — 从 Bitwarden CLI 获取密码
+# 需要先安装 @bitwarden/cli 并设置 BW_PASSWORD 环境变量
 [[providers]]
 type = "bitwarden"
-# cli_path = "bw"
+# cli_path = "/usr/local/bin/bw"  # 可选：指定 bw CLI 路径
 
-# Hotkey bindings
-# Hotkey format: single keys (F7, F8) or combinations (Ctrl+Shift+F7)
-# Supported modifiers: Ctrl, Shift, Alt, Super
+# ==================== 热键绑定 ====================
+
+# 示例 1：Bitwarden 密码 + 逐字符输入
+# 适用于 VNC 密码框等禁粘贴场景
 [[bindings]]
-name = "example-clipboard"
-hotkey = "Ctrl+Shift+F9"
-provider = "clipboard"
+name = "VNC 密码"
+hotkey = "F7"
+provider = "bitwarden"
+item_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+# input_mode 默认为 auto（等同 type）
 
-# [[bindings]]
-# name = "my-server"
-# hotkey = "F7"
-# provider = "bitwarden"
-# item_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+# 示例 2：剪贴板 + 逐字符输入
+# 适用于禁粘贴字段
+[[bindings]]
+name = "密码框输入"
+hotkey = "F8"
+provider = "clipboard"
+input_mode = "type"
+
+# 示例 3：剪贴板 + 粘贴模式
+# 适用于正常编辑器，保留格式
+[[bindings]]
+name = "编辑器粘贴"
+hotkey = "F9"
+provider = "clipboard"
+input_mode = "paste"
+clipboard_clear_after_secs = 0  # 不清理剪贴板
+
+# 示例 4：组合键
+[[bindings]]
+name = "安全输入"
+hotkey = "Ctrl+Shift+F7"
+provider = "clipboard"
+input_mode = "type"
+clipboard_clear_after_secs = 3
+
+# ==================== 附录 ====================
+#
+# 热键格式：
+#   单键：       F7, F8, F9, F10, ...
+#   组合键：     Ctrl+F7, Shift+F9, Alt+A, Super+V
+#   多修饰键：   Ctrl+Shift+F7, Ctrl+Alt+A
+#
+# 输入模式（input_mode）：
+#   auto   — 默认，等同于 type
+#   type   — 逐字符键盘输入，绕过禁粘贴字段
+#   paste  — Ctrl+V 剪贴板粘贴，保留格式
+#
+# 剪贴板清理（clipboard_clear_after_secs）：
+#   > 0 — 输入完成后 N 秒清空剪贴板（仅当内容未变化时）
+#   = 0 — 不清空剪贴板
+#   优先级：binding 级别 > 全局 settings 级别

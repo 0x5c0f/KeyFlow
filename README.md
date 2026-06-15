@@ -1,29 +1,32 @@
 # KeyFlow
 
-非粘贴型密码框辅助输入工具 — 通过模拟键盘输入绕过禁止粘贴的密码框。
+[English](README.en.md) | 简体中文
+
+非粘贴型密码框辅助输入工具 — 通过模拟键盘输入绕过禁止粘贴的密码框，同时支持正常编辑器的粘贴模式。
 
 ## 适用场景
 
-- VNC 远程登录时输入长复杂密码
-- SSH 终端中输入密码
-- 任何禁用粘贴功能的密码输入框
+- 任何禁用粘贴功能的输入框
 - 配合 Bitwarden 等密码管理器使用
+- 正常编辑器中的格式化粘贴
 
 ## 工作原理
 
-1. 用户将鼠标悬停在目标密码框上
+1. 用户将鼠标悬停在目标输入框上
 2. 按下全局热键（如 F7）
-3. KeyFlow 自动：获取鼠标位置 → 点击聚焦 → 从密码管理器获取密码 → 模拟键盘逐字输入
-4. 密码不经过剪贴板，不落盘，安全输入
+3. KeyFlow 自动：获取鼠标位置 → 点击聚焦 → 从密码管理器获取密码 → 输入密码
+4. 根据 `input_mode` 配置选择输入方式：
+   - `type`（默认）：模拟键盘逐字输入，绕过禁粘贴字段
+   - `paste`：通过剪贴板 + Ctrl+V 粘贴，保留格式
 
 ## 系统要求
 
-| 平台 | 依赖 |
-|------|------|
-| Linux (X11) | `libxdo-dev` |
-| Linux (Wayland) | 待支持 |
-| macOS | 待支持 |
-| Windows | 待支持 |
+| 平台 | 状态 | 依赖 |
+|------|------|------|
+| Linux (X11) | ✅ 支持 | `libxdo-dev` |
+| Linux (Wayland) | ❌ 待支持 | — |
+| macOS | ❌ 待支持 | — |
+| Windows | ❌ 待支持 | — |
 
 ### 安装系统依赖
 
@@ -84,10 +87,10 @@ export BW_PASSWORD="your-master-password"
 ### 3. 添加热键绑定
 
 ```bash
-# 剪贴板模式 — 从剪贴板读取密码
+# 剪贴板 + 逐字符输入（绕过禁粘贴字段）
 keyflow bind add --name "my-server" --hotkey "F7" --provider clipboard
 
-# Bitwarden 模式 — 直接从 Bitwarden 获取密码
+# Bitwarden + 逐字符输入
 keyflow bind add --name "vnc-server" --hotkey "F8" --provider bitwarden --item-id "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
 
 # 组合键 — 使用修饰键
@@ -107,7 +110,7 @@ keyflow bind add --name "secure" --hotkey "Ctrl+Shift+F7" --provider clipboard
 
 **支持的修饰键：** `Ctrl`、`Shift`、`Alt`、`Super`
 
-> **注意：** 当前版本的热键管理器是 stub 实现，组合键的实际匹配尚未接入 X11 事件循环。
+**支持的按键：** `F1`-`F24`、`A`-`Z`、`0`-`9`、`Space`、`Tab`、`Esc`、`Enter`、`Backspace`、`Delete`、`Insert`、`Home`、`End`、`PageUp`、`PageDown`、方向键、标点符号
 
 查看绑定：
 ```bash
@@ -126,9 +129,65 @@ keyflow run --daemon
 
 ### 5. 使用
 
-1. 将鼠标悬停在目标密码框上
+1. 将鼠标悬停在目标输入框上
 2. 按 F7（或你配置的热键）
 3. 密码自动输入
+
+## 输入模式
+
+每个 binding 可配置 `input_mode`，控制文本如何传递到目标字段：
+
+| 模式 | 行为 | 适用场景 |
+|------|------|---------|
+| `auto` | 默认，等同于 `type` | 未配置时的安全默认值 |
+| `type` | 逐字符键盘输入 | 禁粘贴字段（VNC、密码框） |
+| `paste` | Ctrl+V 剪贴板粘贴 | 正常编辑器（保留格式） |
+
+**配置示例：**
+
+```toml
+# 逐字符输入（绕过禁粘贴字段）
+[[bindings]]
+name = "VNC 密码"
+hotkey = "F7"
+provider = "clipboard"
+input_mode = "type"
+
+# 粘贴模式（保留格式）
+[[bindings]]
+name = "编辑器粘贴"
+hotkey = "F8"
+provider = "clipboard"
+input_mode = "paste"
+```
+
+## 剪贴板清理
+
+每个 binding 可独立配置剪贴板清理时间：
+
+```toml
+# 全局默认 5 秒后清理
+[settings]
+clipboard_clear_after_secs = 5
+
+# 此 binding 3 秒后清理
+[[bindings]]
+name = "快速清理"
+hotkey = "F7"
+provider = "clipboard"
+clipboard_clear_after_secs = 3
+
+# 此 binding 不清理
+[[bindings]]
+name = "保留剪贴板"
+hotkey = "F8"
+provider = "clipboard"
+clipboard_clear_after_secs = 0
+```
+
+**优先级：** binding 级别 > 全局设置
+
+**安全机制：** 清理前会检查剪贴板内容是否仍为输入的文本。如果用户在等待期间复制了新内容，不会误删。
 
 ## CLI 命令
 
@@ -151,6 +210,8 @@ keyflow
 
 配置文件路径：`~/.config/keyflow/keyflow.toml`
 
+完整配置示例见 [`keyflow.toml.example`](keyflow.toml.example)。
+
 ```toml
 [settings]
 clipboard_clear_after_secs = 5
@@ -162,15 +223,18 @@ type = "clipboard"
 type = "bitwarden"
 
 [[bindings]]
-name = "my-server"
-hotkey = "F7"                                # 单键
+name = "VNC 密码"
+hotkey = "F7"
 provider = "bitwarden"
 item_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+input_mode = "type"
 
 [[bindings]]
-name = "from-clipboard"
-hotkey = "Ctrl+Shift+F9"                     # 组合键
+name = "编辑器粘贴"
+hotkey = "F8"
 provider = "clipboard"
+input_mode = "paste"
+clipboard_clear_after_secs = 0
 ```
 
 ## 开发
@@ -200,10 +264,18 @@ src/
 ├── main.rs         # CLI 入口
 ├── error.rs        # 统一错误类型
 ├── config/         # 配置管理（TOML 解析）
+│   ├── mod.rs      # Config、Settings、ProviderConfig
+│   └── binding.rs  # Binding、InputMode
 ├── provider/       # 密码提供者（Clipboard / Bitwarden）
 ├── input/          # 输入模拟（键盘 / 鼠标，基于 enigo）
+│   ├── mod.rs      # InputEngine trait
+│   ├── keyboard.rs # 键盘输入（type_text / paste_from_clipboard）
+│   └── mouse.rs    # 鼠标操作
 ├── hotkey/         # 全局热键管理
-├── daemon/         # 后台守护进程
+│   ├── mod.rs      # HotkeyManager trait
+│   ├── keys.rs     # 快捷键字符串解析
+│   └── linux.rs    # X11 实现
+├── daemon.rs       # 后台守护进程
 └── cli/            # CLI 命令定义
 ```
 
