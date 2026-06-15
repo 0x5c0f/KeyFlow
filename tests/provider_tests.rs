@@ -1,4 +1,3 @@
-use keyflow::config::ProviderConfig;
 use keyflow::error::ProviderError;
 use keyflow::provider::{create_provider, PasswordProvider};
 
@@ -36,21 +35,13 @@ fn test_mock_provider_empty_returns_error() {
 
 #[test]
 fn test_create_clipboard_provider() {
-    let config = ProviderConfig {
-        provider_type: "clipboard".to_string(),
-        cli_path: None,
-    };
-    let provider = create_provider(&config);
+    let provider = create_provider("clipboard", None);
     assert!(provider.is_some());
     assert_eq!(provider.unwrap().name(), "clipboard");
 }
 
 #[test]
 fn test_create_unknown_provider() {
-    let config = ProviderConfig {
-        provider_type: "unknown".to_string(),
-        cli_path: None,
-    };
-    let provider = create_provider(&config);
+    let provider = create_provider("unknown", None);
     assert!(provider.is_none());
 }

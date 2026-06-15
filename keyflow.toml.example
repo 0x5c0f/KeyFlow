@@ -8,27 +8,18 @@
 # 0 = 不清理。binding 级别的 clipboard_clear_after_secs 会覆盖此值。
 clipboard_clear_after_secs = 5
 
-# ==================== 密码提供者 ====================
-
-# 剪贴板提供者 — 从系统剪贴板读取密码
-[[providers]]
-type = "clipboard"
-
-# Bitwarden 提供者 — 从 Bitwarden CLI 获取密码
-# 需要先安装 @bitwarden/cli 并设置 BW_PASSWORD 环境变量
-[[providers]]
-type = "bitwarden"
-# cli_path = "/usr/local/bin/bw"  # 可选：指定 bw CLI 路径
-
 # ==================== 热键绑定 ====================
 
 # 示例 1：Bitwarden 密码 + 逐字符输入
-# 适用于 VNC 密码框等禁粘贴场景
+# 适用于禁粘贴场景。cli_path 可选，未配置时自动搜索常见路径。
+# cache_secs 缓存密码，避免每次触发都调用 bw CLI（Node.js 启动开销大）。
 [[bindings]]
-name = "VNC 密码"
+name = "Bitwarden 密码"
 hotkey = "F7"
 provider = "bitwarden"
 item_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+# cli_path = "/usr/local/bin/bw"  # 可选：指定 bw CLI 路径
+cache_secs = 300  # 缓存 5 分钟，首次触发后后续直接使用缓存
 # input_mode 默认为 auto（等同 type）
 
 # 示例 2：剪贴板 + 逐字符输入
@@ -72,3 +63,12 @@ clipboard_clear_after_secs = 3
 #   > 0 — 输入完成后 N 秒清空剪贴板（仅当内容未变化时）
 #   = 0 — 不清空剪贴板
 #   优先级：binding 级别 > 全局 settings 级别
+#
+# CLI 路径（cli_path）：
+#   可选。未配置时自动搜索常见安装路径（/usr/bin/bw, /usr/local/bin/bw 等）。
+#   配置后以配置值为准。两者都找不到时报告错误。
+#
+# 密码缓存（cache_secs）：
+#   > 0 — 缓存密码 N 秒，避免重复调用 CLI（主要针对 bitwarden）
+#   = 0 或未配置 — 不缓存，每次触发都调用 CLI
+#   缓存仅存储在内存中，进程退出自动清除

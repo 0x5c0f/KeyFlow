@@ -14,24 +14,43 @@ pub struct BitwardenProvider {
     cli_path: String,
 }
 
+/// Common locations where the `bw` CLI might be installed.
+const BW_SEARCH_PATHS: &[&str] = &[
+    "/usr/bin/bw",
+    "/usr/local/bin/bw",
+    "/opt/homebrew/bin/bw",
+    "/snap/bin/bw",
+];
+
 impl BitwardenProvider {
     pub fn new(cli_path: Option<String>) -> Self {
-        Self {
-            cli_path: cli_path.unwrap_or_else(|| "bw".to_string()),
-        }
+        let resolved = cli_path
+            .filter(|p| !p.is_empty())
+            .unwrap_or_else(|| Self::find_bw_cli());
+        Self { cli_path: resolved }
     }
 
-    /// Check if Bitwarden is unlocked by running `bw status`.
-    fn is_unlocked(&self) -> bool {
-        Command::new(&self.cli_path)
-            .args(["status"])
-            .output()
-            .ok()
-            .and_then(|output| {
-                let stdout = String::from_utf8_lossy(&output.stdout);
-                Some(stdout.contains("\"unlocked\""))
-            })
-            .unwrap_or(false)
+    /// Search for `bw` CLI in common locations, then fall back to `bw` (rely on PATH).
+    fn find_bw_cli() -> String {
+        // 1. Check common absolute paths
+        for path in BW_SEARCH_PATHS {
+            if std::path::Path::new(path).exists() {
+                log::debug!("Found bw CLI at: {path}");
+                return path.to_string();
+            }
+        }
+        // 2. Check ~/.local/bin/bw
+        if let Some(home) = dirs::home_dir() {
+            let local_bin = home.join(".local/bin/bw");
+            if local_bin.exists() {
+                let p = local_bin.to_string_lossy().to_string();
+                log::debug!("Found bw CLI at: {p}");
+                return p;
+            }
+        }
+        // 3. Fall back to bare "bw" (rely on PATH lookup)
+        log::debug!("bw CLI not found in common locations, falling back to PATH");
+        "bw".to_string()
     }
 
     /// Attempt to unlock Bitwarden using BW_PASSWORD env var.
@@ -97,10 +116,21 @@ impl PasswordProvider for BitwardenProvider {
     }
 
     fn get_password_for(&self, item_id: &str) -> Result<String, ProviderError> {
-        if !self.is_unlocked() {
-            self.unlock()?;
+        // Skip `bw status` check — directly attempt to get password.
+        // If it fails (locked), unlock and retry. This saves ~1s per invocation.
+        match self.get_password_for_item(item_id) {
+            Ok(password) => Ok(password),
+            Err(ProviderError::BitwardenCliError { ref stderr })
+                if stderr.contains("not logged in")
+                    || stderr.contains("locked")
+                    || stderr.contains("You are not logged in") =>
+            {
+                log::debug!("Bitwarden locked/not logged in, attempting unlock...");
+                self.unlock()?;
+                self.get_password_for_item(item_id)
+            }
+            Err(e) => Err(e),
         }
-        self.get_password_for_item(item_id)
     }
 
     fn name(&self) -> &str {

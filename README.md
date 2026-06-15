@@ -56,6 +56,38 @@ make build
 make install  # 安装到 ~/.local/bin/（无需 sudo）
 ```
 
+### 从 tarball 安装
+
+```bash
+# 下载并解压
+tar -xzf keyflow-*-x86_64-linux.tar.gz
+cd keyflow-*-x86_64-linux
+
+# 一键安装（二进制 + 配置 + systemd 服务）
+make install
+
+# 卸载
+make uninstall
+
+# 升级（停止 → 安装 → 启动）
+make upgrade
+```
+
+### systemd 服务（推荐）
+
+安装后自动启用 systemd 用户服务，实现开机自启和进程守护：
+
+```bash
+# 启动服务
+systemctl --user start keyflow
+
+# 查看状态
+systemctl --user status keyflow
+
+# 查看日志
+journalctl --user -u keyflow -f
+```
+
 ### 开发模式
 
 ```bash
@@ -216,18 +248,13 @@ keyflow
 [settings]
 clipboard_clear_after_secs = 5
 
-[[providers]]
-type = "clipboard"
-
-[[providers]]
-type = "bitwarden"
-
 [[bindings]]
 name = "VNC 密码"
 hotkey = "F7"
 provider = "bitwarden"
 item_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
 input_mode = "type"
+cache_secs = 300
 
 [[bindings]]
 name = "编辑器粘贴"
@@ -264,9 +291,13 @@ src/
 ├── main.rs         # CLI 入口
 ├── error.rs        # 统一错误类型
 ├── config/         # 配置管理（TOML 解析）
-│   ├── mod.rs      # Config、Settings、ProviderConfig
+│   ├── mod.rs      # Config、Settings
 │   └── binding.rs  # Binding、InputMode
-├── provider/       # 密码提供者（Clipboard / Bitwarden）
+├── provider/       # 密码提供者
+│   ├── mod.rs      # PasswordProvider trait
+│   ├── clipboard.rs# 剪贴板提供者
+│   ├── bitwarden.rs# Bitwarden CLI 提供者
+│   └── cached.rs   # 密码缓存包装器
 ├── input/          # 输入模拟（键盘 / 鼠标，基于 enigo）
 │   ├── mod.rs      # InputEngine trait
 │   ├── keyboard.rs # 键盘输入（type_text / paste_from_clipboard）

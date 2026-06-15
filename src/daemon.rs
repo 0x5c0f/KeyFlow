@@ -4,11 +4,11 @@
 //! Each hotkey triggers: mouse click at cursor -> get password -> type password.
 
 use crate::config::binding::InputMode;
-use crate::config::{Config, ProviderConfig};
+use crate::config::Config;
 use crate::error::KeyflowError;
 use crate::hotkey;
 use crate::input::{self, InputEngine};
-use crate::provider::{self, PasswordProvider};
+use crate::provider::{self, cached::CachedProvider, PasswordProvider};
 use std::sync::Arc;
 
 /// Run the daemon with the given config.
@@ -18,20 +18,8 @@ pub fn run(config: Config) -> Result<(), KeyflowError> {
 
     // Register each binding as a hotkey
     for binding in &config.bindings {
-        let provider_config = config
-            .providers
-            .iter()
-            .find(|p| p.provider_type == binding.provider);
-
-        // If no explicit config found, create a default one (clipboard doesn't need config)
-        let default_config = ProviderConfig {
-            provider_type: binding.provider.clone(),
-            cli_path: Some(String::new()),
-        };
-        let config_ref = provider_config.unwrap_or(&default_config);
-
         let provider: Option<Box<dyn PasswordProvider>> =
-            provider::create_provider(config_ref);
+            provider::create_provider(&binding.provider, binding.cli_path.clone());
 
         let provider = match provider {
             Some(p) => p,
@@ -43,6 +31,19 @@ pub fn run(config: Config) -> Result<(), KeyflowError> {
                 );
                 continue;
             }
+        };
+
+        // Wrap with cache if cache_secs is configured
+        let provider: Box<dyn PasswordProvider> = match binding.cache_secs {
+            Some(secs) if secs > 0 => {
+                log::debug!(
+                    "Binding '{}': caching enabled ({}s TTL)",
+                    binding.name,
+                    secs
+                );
+                Box::new(CachedProvider::new(provider, secs))
+            }
+            _ => provider,
         };
 
         let input = Arc::clone(&input_engine);

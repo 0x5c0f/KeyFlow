@@ -1,9 +1,9 @@
 //! Password provider abstraction.
 
 pub mod bitwarden;
+pub mod cached;
 pub mod clipboard;
 
-use crate::config::ProviderConfig;
 use crate::error::ProviderError;
 
 /// Trait for password providers.
@@ -24,13 +24,15 @@ pub trait PasswordProvider: Send + Sync {
     fn name(&self) -> &str;
 }
 
-/// Create a provider from config. Returns None for unknown types.
-pub fn create_provider(config: &ProviderConfig) -> Option<Box<dyn PasswordProvider>> {
-    match config.provider_type.as_str() {
+/// Create a provider by type name and optional CLI path.
+/// Returns None for unknown provider types.
+pub fn create_provider(
+    provider_type: &str,
+    cli_path: Option<String>,
+) -> Option<Box<dyn PasswordProvider>> {
+    match provider_type {
         "clipboard" => Some(Box::new(clipboard::ClipboardProvider::new())),
-        "bitwarden" => Some(Box::new(bitwarden::BitwardenProvider::new(
-            config.cli_path.clone(),
-        ))),
+        "bitwarden" => Some(Box::new(bitwarden::BitwardenProvider::new(cli_path))),
         _ => None,
     }
 }

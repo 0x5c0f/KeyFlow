@@ -3,7 +3,11 @@ use clap::Parser;
 use keyflow::cli::{Cli, Commands};
 
 fn main() -> Result<()> {
-    env_logger::init();
+    // Filter logs: keyflow uses user-specified level, third-party crates only show warnings.
+    // This prevents sensitive data (e.g. passwords) from appearing in third-party debug logs.
+    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info"))
+        .filter_module("enigo", log::LevelFilter::Warn)
+        .init();
 
     let cli = Cli::parse();
 

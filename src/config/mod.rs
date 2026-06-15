@@ -13,8 +13,6 @@ pub struct Config {
     #[serde(default)]
     pub settings: Settings,
     #[serde(default)]
-    pub providers: Vec<ProviderConfig>,
-    #[serde(default)]
     pub bindings: Vec<Binding>,
 }
 
@@ -36,26 +34,6 @@ impl Default for Settings {
 
 fn default_clipboard_clear() -> u64 {
     5
-}
-
-/// Provider configuration.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ProviderConfig {
-    /// Provider type ("clipboard" or "bitwarden").
-    #[serde(rename = "type")]
-    pub provider_type: String,
-    /// Optional path to the bw CLI binary.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub cli_path: Option<String>,
-}
-
-impl Default for ProviderConfig {
-    fn default() -> Self {
-        Self {
-            provider_type: "clipboard".to_string(),
-            cli_path: None,
-        }
-    }
 }
 
 impl Config {

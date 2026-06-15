@@ -27,14 +27,13 @@ pub fn execute(command: BindCommands) -> Result<()> {
     } else {
         Config {
             settings: Default::default(),
-            providers: vec![],
             bindings: vec![],
         }
     };
 
     match command {
         BindCommands::Add { name, hotkey, provider, item_id } => {
-            let binding = Binding { name, hotkey, provider, item_id, input_mode: InputMode::default(), clipboard_clear_after_secs: None };
+            let binding = Binding { name, hotkey, provider, item_id, cli_path: None, input_mode: InputMode::default(), clipboard_clear_after_secs: None, cache_secs: None };
             config.bindings.push(binding);
             config.save(&config_path)?;
             println!("Binding added: {} ({})", config.bindings.last().unwrap().name, config.bindings.last().unwrap().hotkey);

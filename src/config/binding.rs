@@ -32,6 +32,10 @@ pub struct Binding {
     /// Item ID for provider-specific lookup (e.g., Bitwarden item ID).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub item_id: Option<String>,
+    /// Optional path to the provider CLI binary (e.g. bw CLI path).
+    /// If not set, auto-searches common locations for known providers.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cli_path: Option<String>,
     /// Input mode — how text is delivered to the target field.
     #[serde(default)]
     pub input_mode: InputMode,
@@ -39,4 +43,8 @@ pub struct Binding {
     /// `Some(0)` = don't clear. `None` = fall back to global setting.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub clipboard_clear_after_secs: Option<u64>,
+    /// Password cache duration in seconds. `0` = no cache. Only effective for providers
+    /// that support caching (e.g. bitwarden). Reduces repeated CLI invocations.
+    #[serde(default)]
+    pub cache_secs: Option<u64>,
 }

@@ -7,13 +7,15 @@ fn test_binding_creation() {
         hotkey: "F7".to_string(),
         provider: "clipboard".to_string(),
         item_id: None,
+        cli_path: None,
         input_mode: InputMode::default(),
-        clipboard_clear_after_secs: None,
+        clipboard_clear_after_secs: None, cache_secs: None,
     };
     assert_eq!(binding.name, "test");
     assert_eq!(binding.hotkey, "F7");
     assert_eq!(binding.provider, "clipboard");
     assert!(binding.item_id.is_none());
+    assert!(binding.cli_path.is_none());
     assert_eq!(binding.input_mode, InputMode::Auto);
     assert!(binding.clipboard_clear_after_secs.is_none());
 }
@@ -25,10 +27,12 @@ fn test_binding_with_item_id() {
         hotkey: "F8".to_string(),
         provider: "bitwarden".to_string(),
         item_id: Some("abc-123".to_string()),
+        cli_path: Some("/usr/local/bin/bw".to_string()),
         input_mode: InputMode::Type,
-        clipboard_clear_after_secs: Some(0),
+        clipboard_clear_after_secs: Some(0), cache_secs: Some(300),
     };
     assert_eq!(binding.item_id.as_deref(), Some("abc-123"));
+    assert_eq!(binding.cli_path.as_deref(), Some("/usr/local/bin/bw"));
     assert_eq!(binding.input_mode, InputMode::Type);
     assert_eq!(binding.clipboard_clear_after_secs, Some(0));
 }
@@ -47,22 +51,23 @@ fn test_config_from_toml() {
 [settings]
 clipboard_clear_after_secs = 10
 
-[[providers]]
-type = "clipboard"
-
-[[providers]]
-type = "bitwarden"
-
 [[bindings]]
 name = "test"
 hotkey = "F7"
 provider = "clipboard"
+
+[[bindings]]
+name = "bw"
+hotkey = "F8"
+provider = "bitwarden"
+cli_path = "/usr/local/bin/bw"
 "#;
     let config: Config = toml::from_str(toml_str).unwrap();
     assert_eq!(config.settings.clipboard_clear_after_secs, 10);
-    assert_eq!(config.providers.len(), 2);
-    assert_eq!(config.bindings.len(), 1);
+    assert_eq!(config.bindings.len(), 2);
     assert_eq!(config.bindings[0].name, "test");
+    assert!(config.bindings[0].cli_path.is_none());
+    assert_eq!(config.bindings[1].cli_path.as_deref(), Some("/usr/local/bin/bw"));
 }
 
 #[test]

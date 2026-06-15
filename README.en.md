@@ -56,6 +56,38 @@ make build
 make install  # Install to ~/.local/bin/ (no sudo required)
 ```
 
+### Install from Tarball
+
+```bash
+# Download and extract
+tar -xzf keyflow-*-x86_64-linux.tar.gz
+cd keyflow-*-x86_64-linux
+
+# One-click install (binary + config + systemd service)
+make install
+
+# Uninstall
+make uninstall
+
+# Upgrade (stop → install → start)
+make upgrade
+```
+
+### systemd Service (Recommended)
+
+After installation, the systemd user service is automatically enabled for auto-start and process supervision:
+
+```bash
+# Start service
+systemctl --user start keyflow
+
+# Check status
+systemctl --user status keyflow
+
+# View logs
+journalctl --user -u keyflow -f
+```
+
 ### Development Mode
 
 ```bash
@@ -216,18 +248,13 @@ Full configuration example: [`keyflow.toml.example`](keyflow.toml.example)
 [settings]
 clipboard_clear_after_secs = 5
 
-[[providers]]
-type = "clipboard"
-
-[[providers]]
-type = "bitwarden"
-
 [[bindings]]
 name = "VNC Password"
 hotkey = "F7"
 provider = "bitwarden"
 item_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
 input_mode = "type"
+cache_secs = 300
 
 [[bindings]]
 name = "Editor Paste"
@@ -264,9 +291,13 @@ src/
 ├── main.rs         # CLI entry
 ├── error.rs        # Unified error types
 ├── config/         # Configuration management (TOML parsing)
-│   ├── mod.rs      # Config, Settings, ProviderConfig
+│   ├── mod.rs      # Config, Settings
 │   └── binding.rs  # Binding, InputMode
-├── provider/       # Password providers (Clipboard / Bitwarden)
+├── provider/       # Password providers
+│   ├── mod.rs      # PasswordProvider trait
+│   ├── clipboard.rs# Clipboard provider
+│   ├── bitwarden.rs# Bitwarden CLI provider
+│   └── cached.rs   # Password cache wrapper
 ├── input/          # Input simulation (keyboard / mouse, based on enigo)
 │   ├── mod.rs      # InputEngine trait
 │   ├── keyboard.rs # Keyboard input (type_text / paste_from_clipboard)
