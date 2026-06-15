@@ -17,7 +17,7 @@ pub fn execute(command: BindCommands) -> Result<()> {
 
     match command {
         BindCommands::Add { name, hotkey, provider, item_id } => {
-            let binding = Binding { name, hotkey, provider, item_id, input_mode: InputMode::default() };
+            let binding = Binding { name, hotkey, provider, item_id, input_mode: InputMode::default(), clipboard_clear_after_secs: None };
             config.bindings.push(binding);
             config.save(&config_path)?;
             println!("Binding added: {} ({})", config.bindings.last().unwrap().name, config.bindings.last().unwrap().hotkey);

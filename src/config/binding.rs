@@ -35,4 +35,8 @@ pub struct Binding {
     /// Input mode — how text is delivered to the target field.
     #[serde(default)]
     pub input_mode: InputMode,
+    /// Seconds to wait before clearing clipboard after input.
+    /// `Some(0)` = don't clear. `None` = fall back to global setting.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub clipboard_clear_after_secs: Option<u64>,
 }

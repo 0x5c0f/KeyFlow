@@ -49,7 +49,9 @@ pub fn run(config: Config) -> Result<(), KeyflowError> {
         let binding_name = binding.name.clone();
         let binding_hotkey = binding.hotkey.clone();
         let item_id = binding.item_id.clone();
-        let clear_secs = config.settings.clipboard_clear_after_secs;
+        let clear_secs = binding
+            .clipboard_clear_after_secs
+            .unwrap_or(config.settings.clipboard_clear_after_secs);
         let input_mode = binding.input_mode;
 
         let callback: hotkey::HotkeyCallback = Box::new(move || {
@@ -127,16 +129,26 @@ pub fn run(config: Config) -> Result<(), KeyflowError> {
 
             log::info!("[{binding_name}] ✓ Password typed successfully ({} chars)", password.len());
 
-            // 6. Clear clipboard after delay
+            // 6. Clear clipboard after delay (only if clipboard still contains our text)
             if clear_secs > 0 {
                 let secs = clear_secs;
                 let name_for_clear = binding_name.clone();
-                log::debug!("[{binding_name}] Step 6: Clipboard will be cleared in {secs}s");
+                let input_text = password.clone();
+                log::debug!("[{binding_name}] Step 6: Clipboard will be cleared in {secs}s (if unchanged)");
                 std::thread::spawn(move || {
                     std::thread::sleep(std::time::Duration::from_secs(secs));
                     if let Ok(mut cb) = arboard::Clipboard::new() {
-                        let _ = cb.set_text("");
-                        log::debug!("[{name_for_clear}] Clipboard cleared after {secs}s");
+                        // Only clear if clipboard still contains our text
+                        let should_clear = match cb.get_text() {
+                            Ok(current) => current == input_text,
+                            Err(_) => true, // Can't read — clear to be safe
+                        };
+                        if should_clear {
+                            let _ = cb.set_text("");
+                            log::debug!("[{name_for_clear}] Clipboard cleared after {secs}s");
+                        } else {
+                            log::debug!("[{name_for_clear}] Clipboard changed by user, skipping clear");
+                        }
                     }
                 });
             } else {

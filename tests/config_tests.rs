@@ -8,12 +8,14 @@ fn test_binding_creation() {
         provider: "clipboard".to_string(),
         item_id: None,
         input_mode: InputMode::default(),
+        clipboard_clear_after_secs: None,
     };
     assert_eq!(binding.name, "test");
     assert_eq!(binding.hotkey, "F7");
     assert_eq!(binding.provider, "clipboard");
     assert!(binding.item_id.is_none());
     assert_eq!(binding.input_mode, InputMode::Auto);
+    assert!(binding.clipboard_clear_after_secs.is_none());
 }
 
 #[test]
@@ -24,9 +26,11 @@ fn test_binding_with_item_id() {
         provider: "bitwarden".to_string(),
         item_id: Some("abc-123".to_string()),
         input_mode: InputMode::Type,
+        clipboard_clear_after_secs: Some(0),
     };
     assert_eq!(binding.item_id.as_deref(), Some("abc-123"));
     assert_eq!(binding.input_mode, InputMode::Type);
+    assert_eq!(binding.clipboard_clear_after_secs, Some(0));
 }
 
 use keyflow::config::{Config, Settings};
