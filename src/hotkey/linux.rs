@@ -4,7 +4,7 @@
 //! Wayland support will be added later via libei.
 
 use crate::error::KeyflowError;
-use crate::hotkey::keys;
+use crate::hotkey::keys::{self, Key};
 use crate::hotkey::{HotkeyCallback, HotkeyManager};
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -13,6 +13,61 @@ use x11rb::connection::Connection;
 use x11rb::protocol::xproto::*;
 use x11rb::protocol::Event;
 use x11rb::rust_connection::RustConnection;
+
+/// Convert a platform-agnostic Key to its X11 keysym value.
+fn key_to_x11_keysym(key: Key) -> u32 {
+    match key {
+        // Letters: XK_a = 0x61, XK_A = 0x41 (we use lowercase)
+        Key::A => 0x61, Key::B => 0x62, Key::C => 0x63, Key::D => 0x64,
+        Key::E => 0x65, Key::F => 0x66, Key::G => 0x67, Key::H => 0x68,
+        Key::I => 0x69, Key::J => 0x6A, Key::K => 0x6B, Key::L => 0x6C,
+        Key::M => 0x6D, Key::N => 0x6E, Key::O => 0x6F, Key::P => 0x70,
+        Key::Q => 0x71, Key::R => 0x72, Key::S => 0x73, Key::T => 0x74,
+        Key::U => 0x75, Key::V => 0x76, Key::W => 0x77, Key::X => 0x78,
+        Key::Y => 0x79, Key::Z => 0x7A,
+
+        // Digits: XK_0 = 0x30
+        Key::Digit0 => 0x30, Key::Digit1 => 0x31, Key::Digit2 => 0x32,
+        Key::Digit3 => 0x33, Key::Digit4 => 0x34, Key::Digit5 => 0x35,
+        Key::Digit6 => 0x36, Key::Digit7 => 0x37, Key::Digit8 => 0x38,
+        Key::Digit9 => 0x39,
+
+        // Function keys: XK_F1 = 0xFFBE
+        Key::F1 => 0xFFBE, Key::F2 => 0xFFBF, Key::F3 => 0xFFC0, Key::F4 => 0xFFC1,
+        Key::F5 => 0xFFC2, Key::F6 => 0xFFC3, Key::F7 => 0xFFC4, Key::F8 => 0xFFC5,
+        Key::F9 => 0xFFC6, Key::F10 => 0xFFC7, Key::F11 => 0xFFC8, Key::F12 => 0xFFC9,
+        Key::F13 => 0xFFCA, Key::F14 => 0xFFCB, Key::F15 => 0xFFCC, Key::F16 => 0xFFCD,
+        Key::F17 => 0xFFCE, Key::F18 => 0xFFCF, Key::F19 => 0xFFD0, Key::F20 => 0xFFD1,
+        Key::F21 => 0xFFD2, Key::F22 => 0xFFD3, Key::F23 => 0xFFD4, Key::F24 => 0xFFD5,
+
+        // Navigation
+        Key::Home => 0xFF50, Key::End => 0xFF57,
+        Key::PageUp => 0xFF55, Key::PageDown => 0xFF56,
+        Key::Up => 0xFF52, Key::Down => 0xFF54,
+        Key::Left => 0xFF51, Key::Right => 0xFF53,
+        Key::Insert => 0xFF63, Key::Delete => 0xFFFF,
+        Key::Tab => 0xFF09, Key::Enter => 0xFF0D,
+        Key::Escape => 0xFF1B, Key::Backspace => 0xFF08,
+        Key::Space => 0x0020,
+
+        // Punctuation
+        Key::Minus => 0x002D, Key::Equal => 0x003D,
+        Key::BracketLeft => 0x005B, Key::BracketRight => 0x005D,
+        Key::Backslash => 0x005C, Key::Semicolon => 0x003B,
+        Key::Apostrophe => 0x0027, Key::Grave => 0x0060,
+        Key::Comma => 0x002C, Key::Period => 0x002E, Key::Slash => 0x002F,
+    }
+}
+
+/// Convert platform-agnostic modifier flags to X11 modifier mask.
+fn modifiers_to_x11(modifiers: u16) -> u16 {
+    let mut mask = 0u16;
+    if modifiers & keys::modifiers::SHIFT != 0 { mask |= 1 << 0; }   // ShiftMask
+    if modifiers & keys::modifiers::CONTROL != 0 { mask |= 1 << 2; } // ControlMask
+    if modifiers & keys::modifiers::ALT != 0 { mask |= 1 << 3; }     // Mod1Mask (Alt)
+    if modifiers & keys::modifiers::SUPER != 0 { mask |= 1 << 6; }   // Mod4Mask (Super)
+    mask
+}
 
 /// Shared callback wrapper (allows one callback to be registered for multiple keycodes).
 type SharedCallback = Arc<HotkeyCallback>;
@@ -103,18 +158,20 @@ impl LinuxHotkeyManager {
 impl HotkeyManager for LinuxHotkeyManager {
     fn register(&mut self, hotkey: &str, callback: HotkeyCallback) -> Result<(), KeyflowError> {
         let combo = keys::parse_hotkey(hotkey)?;
+        let keysym = key_to_x11_keysym(combo.key);
+        let x11_mods = modifiers_to_x11(combo.modifiers);
 
-        let keycodes = self.keymap.get(&combo.keysym).ok_or_else(|| {
+        let keycodes = self.keymap.get(&keysym).ok_or_else(|| {
             KeyflowError::HotkeyRegistration {
                 hotkey: hotkey.to_string(),
-                reason: format!("keysym 0x{:04X} not found on keyboard", combo.keysym),
+                reason: format!("keysym 0x{keysym:04X} not found on keyboard"),
             }
         })?;
 
         let lock_masks = self.all_lock_masks();
         for &keycode in keycodes {
             for &lock_mask in &lock_masks {
-                let full_modifiers = combo.modifiers | lock_mask;
+                let full_modifiers = x11_mods | lock_mask;
                 match self.connection.grab_key(
                     true,
                     self.root_window,
@@ -139,7 +196,7 @@ impl HotkeyManager for LinuxHotkeyManager {
 
         let shared = Arc::new(callback);
         for &keycode in keycodes {
-            self.callbacks.insert((keycode, combo.modifiers), shared.clone());
+            self.callbacks.insert((keycode, x11_mods), shared.clone());
         }
 
         self.connection.flush().map_err(|e| {
@@ -149,11 +206,7 @@ impl HotkeyManager for LinuxHotkeyManager {
             }
         })?;
 
-        log::info!(
-            "Registered hotkey: {hotkey} (keysym=0x{:04X}, mods=0x{:04X})",
-            combo.keysym,
-            combo.modifiers
-        );
+        log::info!("Registered hotkey: {hotkey} (keysym=0x{keysym:04X}, mods=0x{x11_mods:04X})");
         Ok(())
     }
 

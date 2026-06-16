@@ -5,6 +5,12 @@ pub mod keys;
 #[cfg(target_os = "linux")]
 pub mod linux;
 
+#[cfg(target_os = "windows")]
+pub mod windows;
+
+#[cfg(target_os = "macos")]
+pub mod macos;
+
 use crate::error::KeyflowError;
 use std::sync::Arc;
 
@@ -37,13 +43,11 @@ pub fn create_hotkey_manager() -> Result<Box<dyn HotkeyManager>, KeyflowError> {
 
     #[cfg(target_os = "windows")]
     {
-        // TODO: Windows implementation
-        unimplemented!("Windows hotkey manager not yet implemented")
+        Ok(Box::new(windows::WindowsHotkeyManager::new()?))
     }
 
     #[cfg(target_os = "macos")]
     {
-        // TODO: macOS implementation
-        unimplemented!("macOS hotkey manager not yet implemented")
+        Ok(Box::new(macos::MacosHotkeyManager::new()?))
     }
 }
