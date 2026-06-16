@@ -6,9 +6,88 @@
 use crate::error::KeyflowError;
 use crate::hotkey::keys::{self, Key};
 use crate::hotkey::{HotkeyCallback, HotkeyManager};
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex, OnceLock};
+
+// Carbon API types
+type OSStatus = i32;
+type EventHotKeyRef = *mut std::ffi::c_void;
+type EventHandlerRef = *mut std::ffi::c_void;
+type EventTargetRef = *mut std::ffi::c_void;
+type EventRef = *mut std::ffi::c_void;
+type CFRunLoopRef = *mut std::ffi::c_void;
+type EventHandlerCallRef = *mut std::ffi::c_void;
+
+// Carbon event constants
+const kEventClassKeyboard: u32 = 0x6B657962; // 'keyb'
+const kEventHotKeyPressed: u32 = 5;
+
+// Modifier key constants
+const cmdKey: u32 = 1 << 8;
+const shiftKey: u32 = 1 << 9;
+const optionKey: u32 = 1 << 11;
+const controlKey: u32 = 1 << 12;
+
+// Carbon event structures
+#[repr(C)]
+struct EventTypeSpec {
+    event_class: u32,
+    event_kind: u32,
+}
+
+#[repr(C)]
+struct EventHotKeyID {
+    signature: u32,
+    id: u32,
+}
+
+// Carbon API functions
+extern "C" {
+    fn RegisterEventHotKey(
+        inHotKeyCode: u32,
+        inHotKeyModifiers: u32,
+        inHotKeyID: EventHotKeyID,
+        inTarget: EventTargetRef,
+        inOptions: u32,
+        outRef: *mut EventHotKeyRef,
+    ) -> OSStatus;
+
+    fn UnregisterEventHotKey(inHotKeyRef: EventHotKeyRef) -> OSStatus;
+
+    fn GetApplicationEventTarget() -> EventTargetRef;
+
+    fn InstallEventHandler(
+        inTarget: EventTargetRef,
+        inHandler: Option<unsafe extern "C" fn(EventHandlerCallRef, EventRef, *mut std::ffi::c_void) -> OSStatus>,
+        inNumTypes: u32,
+        inList: *const EventTypeSpec,
+        inUserData: *mut std::ffi::c_void,
+        outRef: *mut EventHandlerRef,
+    ) -> OSStatus;
+
+    fn GetEventParameter(
+        inEvent: EventRef,
+        inName: u32,
+        inDesiredType: u32,
+        outActualType: *mut u32,
+        inBufferSize: u32,
+        outBufferSize: *mut u32,
+        outData: *mut std::ffi::c_void,
+    ) -> OSStatus;
+
+    fn CFRunLoopRun();
+    fn CFRunLoopGetCurrent() -> CFRunLoopRef;
+    fn CFRunLoopStop(inRunLoop: CFRunLoopRef);
+}
+
+// Global callback storage - shared between main thread and event handler
+static HOTKEY_CALLBACKS: OnceLock<Mutex<HashMap<u32, HotkeyCallback>>> = OnceLock::new();
+
+fn get_callbacks() -> &'static Mutex<HashMap<u32, HotkeyCallback>> {
+    HOTKEY_CALLBACKS.get_or_init(|| Mutex::new(HashMap::new()))
+}
 
 /// Convert a platform-agnostic Key to its macOS CGKeyCode.
 fn key_to_macos(key: Key) -> u32 {
@@ -59,54 +138,199 @@ fn key_to_macos(key: Key) -> u32 {
 /// Convert platform-agnostic modifier flags to macOS modifier flags.
 fn modifiers_to_macos(modifiers: u16) -> u32 {
     let mut flags = 0u32;
-    if modifiers & keys::modifiers::SHIFT != 0 { flags |= 1 << 17; }   // kCGEventFlagMaskShift
-    if modifiers & keys::modifiers::CONTROL != 0 { flags |= 1 << 18; } // kCGEventFlagMaskControl
-    if modifiers & keys::modifiers::ALT != 0 { flags |= 1 << 19; }     // kCGEventFlagMaskAlternate
-    if modifiers & keys::modifiers::SUPER != 0 { flags |= 1 << 20; }   // kCGEventFlagMaskCommand
+    if modifiers & keys::modifiers::SHIFT != 0 { flags |= shiftKey; }
+    if modifiers & keys::modifiers::CONTROL != 0 { flags |= controlKey; }
+    if modifiers & keys::modifiers::ALT != 0 { flags |= optionKey; }
+    if modifiers & keys::modifiers::SUPER != 0 { flags |= cmdKey; }
     flags
 }
 
+/// Carbon event handler callback for hotkey events.
+unsafe extern "C" fn hotkey_handler(
+    _next_handler: EventHandlerCallRef,
+    event: EventRef,
+    _user_data: *mut std::ffi::c_void,
+) -> OSStatus {
+    let mut hotkey_id = EventHotKeyID { signature: 0, id: 0 };
+    let mut size: u32 = 0;
+
+    let status = GetEventParameter(
+        event,
+        1, // kEventParamDirectObject
+        0x686B4944, // typeEventHotKeyID (hkid)
+        std::ptr::null_mut(),
+        std::mem::size_of::<EventHotKeyID>() as u32,
+        &mut size,
+        &mut hotkey_id as *mut EventHotKeyID as *mut std::ffi::c_void,
+    );
+
+    if status == 0 {
+        let id = hotkey_id.id;
+        log::debug!("Hotkey event received: id={id}");
+
+        // Invoke the callback from the global map
+        if let Ok(callbacks) = get_callbacks().lock() {
+            if let Some(callback) = callbacks.get(&id) {
+                callback();
+            }
+        }
+    }
+
+    0 // noErr
+}
+
 pub struct MacosHotkeyManager {
-    callbacks: HashMap<u32, HotkeyCallback>, // hotkey_id -> callback
     next_id: u32,
     running: Arc<AtomicBool>,
+    handler_ref: Option<EventHandlerRef>,
+    hotkey_refs: Vec<EventHotKeyRef>,
+    cf_loop: RefCell<Option<CFRunLoopRef>>,
 }
 
 impl MacosHotkeyManager {
     pub fn new() -> Result<Self, KeyflowError> {
         Ok(Self {
-            callbacks: HashMap::new(),
             next_id: 1,
             running: Arc::new(AtomicBool::new(false)),
+            handler_ref: None,
+            hotkey_refs: Vec::new(),
+            cf_loop: RefCell::new(None),
         })
+    }
+
+    /// Install the Carbon event handler for hotkey events.
+    fn install_handler(&mut self) -> Result<(), KeyflowError> {
+        let event_types = [
+            EventTypeSpec {
+                event_class: kEventClassKeyboard,
+                event_kind: kEventHotKeyPressed,
+            },
+        ];
+
+        let mut handler_ref: EventHandlerRef = std::ptr::null_mut();
+
+        unsafe {
+            let status = InstallEventHandler(
+                GetApplicationEventTarget(),
+                Some(hotkey_handler),
+                event_types.len() as u32,
+                event_types.as_ptr(),
+                std::ptr::null_mut(),
+                &mut handler_ref,
+            );
+
+            if status != 0 {
+                return Err(KeyflowError::Io(std::io::Error::other(
+                    format!("InstallEventHandler failed: {status}"),
+                )));
+            }
+        }
+
+        self.handler_ref = Some(handler_ref);
+        log::debug!("Carbon event handler installed");
+        Ok(())
+    }
+}
+
+impl Drop for MacosHotkeyManager {
+    fn drop(&mut self) {
+        // Unregister all hotkeys
+        for hotkey_ref in &self.hotkey_refs {
+            unsafe {
+                UnregisterEventHotKey(*hotkey_ref);
+            }
+        }
+
+        // Stop CFRunLoop if running
+        if let Some(cf_loop) = *self.cf_loop.borrow() {
+            unsafe {
+                CFRunLoopStop(cf_loop);
+            }
+        }
+
+        // Clear global callbacks
+        if let Ok(mut callbacks) = get_callbacks().lock() {
+            callbacks.clear();
+        }
     }
 }
 
 impl HotkeyManager for MacosHotkeyManager {
     fn register(&mut self, hotkey: &str, callback: HotkeyCallback) -> Result<(), KeyflowError> {
-        let _combo = keys::parse_hotkey(hotkey)?;
-        // TODO: Implement RegisterEventHotKey
-        // For now, store the callback for future implementation
+        let combo = keys::parse_hotkey(hotkey)?;
+
+        // Install handler if not already done
+        if self.handler_ref.is_none() {
+            self.install_handler()?;
+        }
+
         let id = self.next_id;
         self.next_id += 1;
-        self.callbacks.insert(id, callback);
-        log::warn!("macOS hotkey registration not yet implemented: {hotkey}");
+
+        let keycode = key_to_macos(combo.key);
+        let mods = modifiers_to_macos(combo.modifiers);
+
+        let hotkey_id = EventHotKeyID {
+            signature: 0x4B46, // 'KF' - KeyFlow signature
+            id,
+        };
+
+        let mut hotkey_ref: EventHotKeyRef = std::ptr::null_mut();
+
+        unsafe {
+            let status = RegisterEventHotKey(
+                keycode,
+                mods,
+                hotkey_id,
+                GetApplicationEventTarget(),
+                0,
+                &mut hotkey_ref,
+            );
+
+            if status != 0 {
+                return Err(KeyflowError::HotkeyRegistration {
+                    hotkey: hotkey.to_string(),
+                    reason: format!("RegisterEventHotKey failed: {status}"),
+                });
+            }
+        }
+
+        self.hotkey_refs.push(hotkey_ref);
+
+        // Store callback in global map for the event handler
+        if let Ok(mut callbacks) = get_callbacks().lock() {
+            callbacks.insert(id, callback);
+        }
+
+        log::info!("Registered hotkey: {hotkey} (id={id}, keycode=0x{keycode:02X}, mods=0x{mods:02X})");
         Ok(())
     }
 
     fn run(&self) -> Result<(), KeyflowError> {
         self.running.store(true, Ordering::Release);
         log::info!("Hotkey manager started (macOS)");
-        // TODO: Implement CFRunLoop or event tap
-        while self.running.load(Ordering::Acquire) {
-            std::thread::sleep(std::time::Duration::from_millis(100));
+
+        // CFRunLoop needs to run on the main thread for hotkey events to work
+        unsafe {
+            let cf_loop = CFRunLoopGetCurrent();
+            *self.cf_loop.borrow_mut() = Some(cf_loop);
+
+            // This will block until CFRunLoopStop is called
+            CFRunLoopRun();
         }
+
         log::info!("Hotkey manager stopped");
         Ok(())
     }
 
     fn stop(&self) {
         self.running.store(false, Ordering::Release);
+        // Stop CFRunLoop
+        if let Some(cf_loop) = *self.cf_loop.borrow() {
+            unsafe {
+                CFRunLoopStop(cf_loop);
+            }
+        }
     }
 
     fn running_flag(&self) -> Arc<AtomicBool> {
