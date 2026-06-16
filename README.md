@@ -24,27 +24,12 @@
 
 | 平台 | 状态 | 依赖 |
 |------|------|------|
-| Linux (X11) | ✅ 支持 | `libxdo-dev` |
+| Linux (X11) | ✅ 支持 | 无（纯 Rust X11 后端） |
 | Linux (Wayland) | ❌ 待支持 | — |
 | macOS | ❌ 待支持 | — |
 | Windows | ❌ 待支持 | — |
 
-### 安装系统依赖
-
-**Debian / Ubuntu:**
-```bash
-sudo apt-get install -y libxdo-dev
-```
-
-**Fedora:**
-```bash
-sudo dnf install -y libXtst-devel
-```
-
-**Arch Linux:**
-```bash
-sudo pacman -S xdotool
-```
+> **注意：** Linux X11 版本使用纯 Rust 的 `x11rb` 后端，无需安装额外系统依赖。
 
 ## 安装
 

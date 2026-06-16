@@ -24,27 +24,12 @@ A non-paste password input assistant — bypass paste-disabled password fields b
 
 | Platform | Status | Dependency |
 |----------|--------|------------|
-| Linux (X11) | ✅ Supported | `libxdo-dev` |
+| Linux (X11) | ✅ Supported | None (pure Rust X11 backend) |
 | Linux (Wayland) | ❌ Planned | — |
 | macOS | ❌ Planned | — |
 | Windows | ❌ Planned | — |
 
-### Install System Dependencies
-
-**Debian / Ubuntu:**
-```bash
-sudo apt-get install -y libxdo-dev
-```
-
-**Fedora:**
-```bash
-sudo dnf install -y libXtst-devel
-```
-
-**Arch Linux:**
-```bash
-sudo pacman -S xdotool
-```
+> **Note:** The Linux X11 version uses a pure Rust `x11rb` backend, no additional system dependencies required.
 
 ## Installation
 
