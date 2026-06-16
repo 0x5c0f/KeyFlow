@@ -111,6 +111,12 @@ keyflow bind add --name "my-server" --hotkey "F7" --provider clipboard
 # Bitwarden + character input
 keyflow bind add --name "vnc-server" --hotkey "F8" --provider bitwarden --item-id "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
 
+# Static text (plaintext)
+keyflow bind add --name "Email" --hotkey "F9" --provider static --content "user@example.com"
+
+# Static text (encrypted)
+keyflow bind add --name "API Key" --hotkey "F10" --provider static --content "enc:v1:xxx" --encrypted
+
 # Combination keys
 keyflow bind add --name "secure" --hotkey "Ctrl+Shift+F7" --provider clipboard
 ```

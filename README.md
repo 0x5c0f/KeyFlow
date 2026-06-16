@@ -111,6 +111,12 @@ keyflow bind add --name "my-server" --hotkey "F7" --provider clipboard
 # Bitwarden + 逐字符输入
 keyflow bind add --name "vnc-server" --hotkey "F8" --provider bitwarden --item-id "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
 
+# 静态文本（明文）
+keyflow bind add --name "邮箱" --hotkey "F9" --provider static --content "user@example.com"
+
+# 静态文本（加密）
+keyflow bind add --name "API Key" --hotkey "F10" --provider static --content "enc:v1:xxx" --encrypted
+
 # 组合键 — 使用修饰键
 keyflow bind add --name "secure" --hotkey "Ctrl+Shift+F7" --provider clipboard
 ```

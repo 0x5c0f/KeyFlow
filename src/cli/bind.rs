@@ -32,14 +32,28 @@ pub fn execute(command: BindCommands) -> Result<()> {
     };
 
     match command {
-        BindCommands::Add { name, hotkey, provider, item_id } => {
+        BindCommands::Add { name, hotkey, provider, item_id, content, encrypted } => {
+            // Validate static provider requirements
+            if provider == "static" && content.is_none() {
+                anyhow::bail!("--content is required for provider=static");
+            }
+            if provider != "static" && content.is_some() {
+                anyhow::bail!("--content is only valid for provider=static");
+            }
+            if encrypted && provider != "static" {
+                anyhow::bail!("--encrypted is only valid for provider=static");
+            }
+            if encrypted && content.is_none() {
+                anyhow::bail!("--content is required when --encrypted is set");
+            }
+
             let binding = Binding {
                 name,
                 hotkey,
                 provider,
                 item_id,
-                content: None,
-                encrypted: false,
+                content,
+                encrypted,
                 cli_path: None,
                 input_mode: InputMode::default(),
                 clipboard_clear_after_secs: None,

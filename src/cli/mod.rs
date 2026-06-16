@@ -54,12 +54,18 @@ pub enum BindCommands {
         /// Hotkey to bind (e.g., F7, F8)
         #[arg(long)]
         hotkey: String,
-        /// Provider type (clipboard or bitwarden)
+        /// Provider type (clipboard, bitwarden, or static)
         #[arg(long)]
         provider: String,
         /// Item ID for the provider (required for bitwarden)
         #[arg(long)]
         item_id: Option<String>,
+        /// Static content for provider=static
+        #[arg(long)]
+        content: Option<String>,
+        /// Whether content is encrypted (for provider=static)
+        #[arg(long, default_value = "false")]
+        encrypted: bool,
     },
     /// Remove a binding by name
     Remove {
