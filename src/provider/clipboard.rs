@@ -6,6 +6,12 @@ use crate::provider::PasswordProvider;
 /// Reads the password from the system clipboard.
 pub struct ClipboardProvider;
 
+impl Default for ClipboardProvider {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ClipboardProvider {
     pub fn new() -> Self {
         Self

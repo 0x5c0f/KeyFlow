@@ -26,7 +26,7 @@ impl BitwardenProvider {
     pub fn new(cli_path: Option<String>) -> Self {
         let resolved = cli_path
             .filter(|p| !p.is_empty())
-            .unwrap_or_else(|| Self::find_bw_cli());
+            .unwrap_or_else(Self::find_bw_cli);
         Self { cli_path: resolved }
     }
 
@@ -117,19 +117,23 @@ impl PasswordProvider for BitwardenProvider {
 
     fn get_password_for(&self, item_id: &str) -> Result<String, ProviderError> {
         // Skip `bw status` check — directly attempt to get password.
-        // If it fails (locked), unlock and retry. This saves ~1s per invocation.
+        // If it fails (locked or empty), unlock and retry. This saves ~1s per invocation.
         match self.get_password_for_item(item_id) {
             Ok(password) => Ok(password),
             Err(ProviderError::BitwardenCliError { ref stderr })
                 if stderr.contains("not logged in")
                     || stderr.contains("locked")
-                    || stderr.contains("You are not logged in") =>
+                    || stderr.contains("You are not logged in")
+                    || stderr.contains("empty password") =>
             {
-                log::debug!("Bitwarden locked/not logged in, attempting unlock...");
+                log::debug!("Bitwarden locked/not logged in/empty, attempting unlock...");
                 self.unlock()?;
                 self.get_password_for_item(item_id)
             }
-            Err(e) => Err(e),
+            Err(e) => {
+                log::error!("Bitwarden error: {e}. Run 'keyflow unlock' to refresh session.");
+                Err(e)
+            }
         }
     }
 

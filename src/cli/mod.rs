@@ -34,8 +34,24 @@ pub enum Commands {
     /// Show configuration
     #[command(subcommand)]
     Config(ConfigCommands),
-    /// Unlock Bitwarden vault
+    /// Unlock Bitwarden vault and save session to config
     Unlock,
+    /// Manage system service (Windows only)
+    #[cfg(target_os = "windows")]
+    #[command(subcommand)]
+    Service(ServiceCommands),
+}
+
+/// Windows service management commands.
+#[cfg(target_os = "windows")]
+#[derive(Subcommand)]
+pub enum ServiceCommands {
+    /// Install as a Windows service
+    Install,
+    /// Uninstall the Windows service
+    Uninstall,
+    /// Run as a Windows service (used by SCM, not for manual use)
+    Run,
 }
 
 #[derive(Subcommand)]

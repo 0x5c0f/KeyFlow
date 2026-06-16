@@ -10,3 +10,6 @@ pub mod input;
 pub mod hotkey;
 pub mod daemon;
 pub mod cli;
+
+#[cfg(target_os = "windows")]
+pub mod windows_service;

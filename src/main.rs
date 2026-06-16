@@ -18,6 +18,12 @@ fn main() -> Result<()> {
         Commands::Bind(cmd) => keyflow::cli::bind::execute(cmd)?,
         Commands::Config(cmd) => keyflow::cli::config_cmd::execute(cmd)?,
         Commands::Unlock => keyflow::cli::unlock::execute()?,
+        #[cfg(target_os = "windows")]
+        Commands::Service(cmd) => match cmd {
+            keyflow::cli::ServiceCommands::Install => keyflow::windows_service::install_service()?,
+            keyflow::cli::ServiceCommands::Uninstall => keyflow::windows_service::uninstall_service()?,
+            keyflow::cli::ServiceCommands::Run => keyflow::windows_service::run_service()?,
+        },
     }
 
     Ok(())

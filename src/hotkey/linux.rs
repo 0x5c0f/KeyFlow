@@ -139,18 +139,15 @@ impl LinuxHotkeyManager {
     }
 
     fn handle_event(&self, event: Event) {
-        match event {
-            Event::KeyPress(ev) => {
-                let keycode = ev.detail;
-                let state: u16 = ev.state.into();
-                let state = state
-                    & !(self.lock_mods.num_lock | self.lock_mods.caps_lock | self.lock_mods.scroll_lock);
-                if let Some(callback) = self.callbacks.get(&(keycode, state)) {
-                    log::debug!("Hotkey triggered: keycode={keycode}, state=0x{state:04X}");
-                    callback();
-                }
+        if let Event::KeyPress(ev) = event {
+            let keycode = ev.detail;
+            let state: u16 = ev.state.into();
+            let state = state
+                & !(self.lock_mods.num_lock | self.lock_mods.caps_lock | self.lock_mods.scroll_lock);
+            if let Some(callback) = self.callbacks.get(&(keycode, state)) {
+                log::debug!("Hotkey triggered: keycode={keycode}, state=0x{state:04X}");
+                callback();
             }
-            _ => {}
         }
     }
 }
@@ -275,9 +272,9 @@ fn build_keymap(connection: &RustConnection) -> Result<HashMap<u32, Vec<u8>>, Ke
 
     let reply = connection
         .get_keyboard_mapping(min_keycode, count)
-        .map_err(|e| KeyflowError::Io(std::io::Error::new(std::io::ErrorKind::Other, format!("get_keyboard_mapping failed: {e}"))))?
+        .map_err(|e| KeyflowError::Io(std::io::Error::other(format!("get_keyboard_mapping failed: {e}"))))?
         .reply()
-        .map_err(|e| KeyflowError::Io(std::io::Error::new(std::io::ErrorKind::Other, format!("get_keyboard_mapping reply failed: {e}"))))?;
+        .map_err(|e| KeyflowError::Io(std::io::Error::other(format!("get_keyboard_mapping reply failed: {e}"))))?;
 
     let keysyms_per_keycode = reply.keysyms_per_keycode as usize;
     let mut keymap: HashMap<u32, Vec<u8>> = HashMap::new();
@@ -299,9 +296,9 @@ fn build_keymap(connection: &RustConnection) -> Result<HashMap<u32, Vec<u8>>, Ke
 fn detect_lock_modifiers(connection: &RustConnection) -> Result<LockModifiers, KeyflowError> {
     let reply = connection
         .get_modifier_mapping()
-        .map_err(|e| KeyflowError::Io(std::io::Error::new(std::io::ErrorKind::Other, format!("get_modifier_mapping failed: {e}"))))?
+        .map_err(|e| KeyflowError::Io(std::io::Error::other(format!("get_modifier_mapping failed: {e}"))))?
         .reply()
-        .map_err(|e| KeyflowError::Io(std::io::Error::new(std::io::ErrorKind::Other, format!("get_modifier_mapping reply failed: {e}"))))?;
+        .map_err(|e| KeyflowError::Io(std::io::Error::other(format!("get_modifier_mapping reply failed: {e}"))))?;
     let modmap = &reply.keycodes;
     let per_mod = reply.keycodes_per_modifier() as usize;
 
@@ -315,9 +312,9 @@ fn detect_lock_modifiers(connection: &RustConnection) -> Result<LockModifiers, K
     let count = max_keycode - min_keycode + 1;
     let km_reply = connection
         .get_keyboard_mapping(min_keycode, count)
-        .map_err(|e| KeyflowError::Io(std::io::Error::new(std::io::ErrorKind::Other, format!("get_keyboard_mapping failed: {e}"))))?
+        .map_err(|e| KeyflowError::Io(std::io::Error::other(format!("get_keyboard_mapping failed: {e}"))))?
         .reply()
-        .map_err(|e| KeyflowError::Io(std::io::Error::new(std::io::ErrorKind::Other, format!("get_keyboard_mapping reply failed: {e}"))))?;
+        .map_err(|e| KeyflowError::Io(std::io::Error::other(format!("get_keyboard_mapping reply failed: {e}"))))?;
     let kspkc = km_reply.keysyms_per_keycode as usize;
 
     let has_keysym = |keycode: u8, target: u32| -> bool {

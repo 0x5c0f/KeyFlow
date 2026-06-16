@@ -13,6 +13,14 @@ use std::sync::Arc;
 
 /// Run the daemon with the given config.
 pub fn run(config: Config) -> Result<(), KeyflowError> {
+    // Set BW_SESSION from config if available
+    if let Some(ref session) = config.settings.bw_session {
+        if !session.is_empty() {
+            std::env::set_var("BW_SESSION", session);
+            log::debug!("BW_SESSION set from config");
+        }
+    }
+
     let input_engine: Arc<dyn InputEngine> = Arc::from(input::create_engine());
     let mut hotkey_mgr = hotkey::create_hotkey_manager()?;
 
@@ -169,7 +177,7 @@ pub fn run(config: Config) -> Result<(), KeyflowError> {
         stop_flag_clone.store(true, std::sync::atomic::Ordering::SeqCst);
     })
     .map_err(|e| {
-        KeyflowError::Io(std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))
+        KeyflowError::Io(std::io::Error::other(e.to_string()))
     })?;
 
     // Run the event loop in a thread so we can monitor the stop flag

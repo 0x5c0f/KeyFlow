@@ -5,8 +5,10 @@ use serde::{Deserialize, Serialize};
 /// Input mode for a binding — controls how text is delivered to the target field.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
+#[derive(Default)]
 pub enum InputMode {
     /// Default — currently equivalent to `type`. Reserved for future heuristics.
+    #[default]
     Auto,
     /// Character-by-character XTEST input. Works in paste-disabled fields.
     Type,
@@ -14,11 +16,6 @@ pub enum InputMode {
     Paste,
 }
 
-impl Default for InputMode {
-    fn default() -> Self {
-        Self::Auto
-    }
-}
 
 /// A binding maps a hotkey to a password provider.
 #[derive(Debug, Clone, Serialize, Deserialize)]
