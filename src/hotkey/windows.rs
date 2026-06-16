@@ -263,7 +263,10 @@ impl HotkeyManager for WindowsHotkeyManager {
 
         // Register the hotkey
         unsafe {
-            let hwnd = self.hwnd.unwrap();
+            let hwnd = self.hwnd.ok_or_else(|| KeyflowError::HotkeyRegistration {
+                hotkey: hotkey.to_string(),
+                reason: "Message window not created".to_string(),
+            })?;
             let result = RegisterHotKey(hwnd, id as i32, mods, vk as u32);
             if result == 0 {
                 return Err(KeyflowError::HotkeyRegistration {
