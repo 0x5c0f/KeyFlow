@@ -42,13 +42,14 @@ impl PasswordProvider for CachedProvider {
         if let Ok(cache) = self.cache.lock() {
             if let Some(ref entry) = *cache {
                 if Self::is_valid(entry, self.ttl_secs) {
-                    log::debug!("Cache hit for {}", self.inner.name());
+                    log::info!("Cache hit for {}", self.inner.name());
                     return Ok(entry.password.clone());
                 }
             }
         }
 
         // Cache miss — fetch from inner provider
+        log::info!("Cache miss for {}", self.inner.name());
         let password = self.inner.get_password()?;
 
         // Update cache
@@ -67,13 +68,14 @@ impl PasswordProvider for CachedProvider {
         if let Ok(cache) = self.cache.lock() {
             if let Some(ref entry) = *cache {
                 if Self::is_valid(entry, self.ttl_secs) {
-                    log::debug!("Cache hit for {} (item: {item_id})", self.inner.name());
+                    log::info!("Cache hit for {} (item: {item_id})", self.inner.name());
                     return Ok(entry.password.clone());
                 }
             }
         }
 
         // Cache miss — fetch from inner provider
+        log::info!("Cache miss for {}", self.inner.name());
         let password = self.inner.get_password_for(item_id)?;
 
         // Update cache
