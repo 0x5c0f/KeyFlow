@@ -176,6 +176,10 @@ pub struct WindowsHotkeyManager {
     hwnd: Option<HWND>,
 }
 
+// Safety: HWND is a handle to a message-only window that we own and control.
+// It's only accessed from the hotkey manager thread.
+unsafe impl Send for WindowsHotkeyManager {}
+
 impl WindowsHotkeyManager {
     pub fn new() -> Result<Self, KeyflowError> {
         Ok(Self {

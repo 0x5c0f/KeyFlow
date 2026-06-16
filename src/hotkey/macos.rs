@@ -187,6 +187,10 @@ pub struct MacosHotkeyManager {
     cf_loop: RefCell<Option<CFRunLoopRef>>,
 }
 
+// Safety: All pointers are Carbon API handles managed by the system.
+// They are only accessed from the hotkey manager thread.
+unsafe impl Send for MacosHotkeyManager {}
+
 impl MacosHotkeyManager {
     pub fn new() -> Result<Self, KeyflowError> {
         Ok(Self {
