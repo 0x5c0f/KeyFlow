@@ -7,7 +7,7 @@ Type=simple
 ExecStart=%h/.local/bin/keyflow run
 Restart=on-failure
 RestartSec=3
-PassEnvironment=DISPLAY XAUTHORITY BW_SESSION
+PassEnvironment=DISPLAY XAUTHORITY
 
 [Install]
 WantedBy=graphical-session.target

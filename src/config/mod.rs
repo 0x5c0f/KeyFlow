@@ -22,12 +22,17 @@ pub struct Settings {
     /// Seconds to wait before clearing clipboard after input. 0 = don't clear.
     #[serde(default = "default_clipboard_clear")]
     pub clipboard_clear_after_secs: u64,
+    /// Bitwarden session key for vault access.
+    /// Set via `keyflow unlock` or manually from `bw unlock --raw`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub bw_session: Option<String>,
 }
 
 impl Default for Settings {
     fn default() -> Self {
         Self {
             clipboard_clear_after_secs: default_clipboard_clear(),
+            bw_session: None,
         }
     }
 }
