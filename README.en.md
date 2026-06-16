@@ -112,8 +112,8 @@ npm install -g @bitwarden/cli
 # First login
 bw login
 
-# Set master password environment variable (add to ~/.bashrc or ~/.zshrc)
-export BW_PASSWORD="your-master-password"
+# Unlock and save session (interactive password input)
+keyflow unlock
 ```
 
 ### 3. Add Hotkey Bindings

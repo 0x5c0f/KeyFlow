@@ -113,7 +113,6 @@ jobs:
           DIST_NAME="keyflow-${VERSION}-windows-x86_64"
           mkdir -p "${DIST_NAME}"
           cp artifacts/windows-x86_64/keyflow.exe "${DIST_NAME}/"
-          cp packaging/windows/install.ps1 "${DIST_NAME}/"
           cp keyflow.toml.example "${DIST_NAME}/"
           cp README.md "${DIST_NAME}/"
           zip -r "${DIST_NAME}.zip" "${DIST_NAME}"

@@ -8,8 +8,7 @@ use std::process::Command;
 ///
 /// Requires:
 /// - `bw` CLI installed and in PATH (or custom cli_path)
-/// - BW_PASSWORD env var set for auto-unlock
-/// - BW_SESSION env var (auto-managed by this provider)
+/// - BW_SESSION set via `keyflow unlock` or config file
 pub struct BitwardenProvider {
     cli_path: String,
 }

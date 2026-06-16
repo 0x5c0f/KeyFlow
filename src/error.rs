@@ -34,7 +34,7 @@ pub enum KeyflowError {
 /// Errors from password providers.
 #[derive(Debug, Error)]
 pub enum ProviderError {
-    #[error("Bitwarden is not unlocked. Set BW_PASSWORD env var or run: bw unlock")]
+    #[error("Bitwarden is not unlocked. Run: keyflow unlock")]
     BitwardenLocked,
 
     #[error("Bitwarden item not found: {item_id}")]

@@ -112,8 +112,8 @@ npm install -g @bitwarden/cli
 # 首次登录
 bw login
 
-# 设置主密码环境变量（写入 ~/.bashrc 或 ~/.zshrc）
-export BW_PASSWORD="your-master-password"
+# 解锁并保存会话（交互式输入密码）
+keyflow unlock
 ```
 
 ### 3. 添加热键绑定
