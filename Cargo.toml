@@ -1,6 +1,6 @@
 [package]
 name = "keyflow"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 description = "Non-paste password input assistant — simulate keystrokes to bypass paste-disabled password fields"
 license = "MIT"
@@ -15,7 +15,7 @@ path = "src/main.rs"
 
 [dependencies]
 clap = { version = "4", features = ["derive"] }
-enigo = "0.2"
+enigo = { version = "0.2", default-features = false, features = ["x11rb"] }
 arboard = "3"
 serde = { version = "1", features = ["derive"] }
 toml = "0.8"
