@@ -26,8 +26,25 @@ pub fn run(config: Config) -> Result<(), KeyflowError> {
 
     // Register each binding as a hotkey
     for binding in &config.bindings {
-        let provider: Option<Box<dyn PasswordProvider>> =
-            provider::create_provider(&binding.provider, binding.cli_path.clone());
+        let provider: Option<Box<dyn PasswordProvider>> = if binding.provider == "static" {
+            // Static provider requires content field
+            match binding.content {
+                Some(ref content) => Some(provider::create_static_provider(
+                    content.clone(),
+                    binding.encrypted,
+                    config.settings.encryption_key.clone(),
+                )),
+                None => {
+                    log::warn!(
+                        "Skipping binding '{}': provider='static' requires 'content' field",
+                        binding.name
+                    );
+                    continue;
+                }
+            }
+        } else {
+            provider::create_provider(&binding.provider, binding.cli_path.clone())
+        };
 
         let provider = match provider {
             Some(p) => p,
@@ -81,8 +98,9 @@ pub fn run(config: Config) -> Result<(), KeyflowError> {
 
             // 2. Wait for hotkey modifier keys to be released before proceeding
             // This prevents Ctrl/Shift/Alt from being "stuck" when typing
+            // The delay needs to be long enough for the user to fully release the hotkey
             log::debug!("[{binding_name}] Step 2: Waiting for modifier keys to release...");
-            std::thread::sleep(std::time::Duration::from_millis(200));
+            std::thread::sleep(std::time::Duration::from_millis(300));
 
             // 3. Click at mouse position to focus the target field
             log::debug!("[{binding_name}] Step 3: Clicking at ({x}, {y}) to focus target...");

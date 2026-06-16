@@ -18,6 +18,7 @@ fn main() -> Result<()> {
         Commands::Bind(cmd) => keyflow::cli::bind::execute(cmd)?,
         Commands::Config(cmd) => keyflow::cli::config_cmd::execute(cmd)?,
         Commands::Unlock => keyflow::cli::unlock::execute()?,
+        Commands::Encrypt { plaintext } => keyflow::cli::encrypt::execute(plaintext)?,
     }
 
     Ok(())

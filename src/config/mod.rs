@@ -26,6 +26,10 @@ pub struct Settings {
     /// Set via `keyflow unlock` or manually from `bw unlock --raw`.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub bw_session: Option<String>,
+    /// Encryption key for static content.
+    /// Used by `keyflow encrypt` to encrypt and by daemon to decrypt.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub encryption_key: Option<String>,
 }
 
 impl Default for Settings {
@@ -33,6 +37,7 @@ impl Default for Settings {
         Self {
             clipboard_clear_after_secs: default_clipboard_clear(),
             bw_session: None,
+            encryption_key: None,
         }
     }
 }

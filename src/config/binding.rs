@@ -27,11 +27,18 @@ pub struct Binding {
     pub name: String,
     /// Hotkey to trigger this binding (e.g., "F7", "F8").
     pub hotkey: String,
-    /// Provider type to use ("clipboard" or "bitwarden").
+    /// Provider type to use ("clipboard", "bitwarden", or "static").
     pub provider: String,
     /// Item ID for provider-specific lookup (e.g., Bitwarden item ID).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub item_id: Option<String>,
+    /// Static content for provider="static". Can be plaintext or encrypted.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub content: Option<String>,
+    /// Whether content is encrypted. Requires `encryption_key` in settings.
+    /// Default: false (content is plaintext).
+    #[serde(default)]
+    pub encrypted: bool,
     /// Optional path to the provider CLI binary (e.g. bw CLI path).
     /// If not set, auto-searches common locations for known providers.
     #[serde(skip_serializing_if = "Option::is_none")]

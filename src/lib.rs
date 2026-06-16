@@ -4,6 +4,7 @@
 //! Integrates with Bitwarden CLI for secure password retrieval.
 
 pub mod config;
+pub mod crypto;
 pub mod error;
 pub mod provider;
 pub mod input;

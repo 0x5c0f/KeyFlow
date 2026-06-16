@@ -13,6 +13,11 @@ clipboard_clear_after_secs = 5
 # 设置后 daemon 启动时自动使用，无需配置 BW_SESSION 环境变量。
 # bw_session = "0.xxxxxxxx..."
 
+# 加密密钥（可选）。
+# 用于加密 static 类型的 content 字段。通过 `keyflow encrypt` 命令加密内容。
+# 设置后 daemon 启动时自动使用，无需额外配置。
+# encryption_key = "your-secret-key"
+
 # ==================== 热键绑定 ====================
 
 # 示例 1：Bitwarden 密码 + 逐字符输入
@@ -52,7 +57,35 @@ provider = "clipboard"
 input_mode = "type"
 clipboard_clear_after_secs = 3
 
+# 示例 5：静态文本（明文）
+# 直接在配置文件中定义要输入的内容
+[[bindings]]
+name = "邮箱地址"
+hotkey = "F10"
+provider = "static"
+content = "user@example.com"
+
+# 示例 6：静态文本（加密）
+# 使用 `keyflow encrypt "your-secret"` 加密内容
+# 需要在 [settings] 中配置 encryption_key
+[[bindings]]
+name = "API Key"
+hotkey = "F11"
+provider = "static"
+content = "enc:v1:aGVsbG8gd29ybGQ..."  # 替换为实际加密内容
+encrypted = true
+
 # ==================== 附录 ====================
+#
+# 数据源（provider）：
+#   clipboard  — 从系统剪贴板读取
+#   bitwarden  — 从 Bitwarden vault 获取密码
+#   static     — 配置文件中定义的静态文本
+#
+# 静态文本加密：
+#   1. 在 [settings] 中设置 encryption_key
+#   2. 运行 `keyflow encrypt "要加密的内容"` 获取加密字符串
+#   3. 在 binding 中设置 content = "enc:v1:..." 和 encrypted = true
 #
 # 热键格式：
 #   单键：       F7, F8, F9, F10, ...

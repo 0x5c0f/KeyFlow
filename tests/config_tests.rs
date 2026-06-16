@@ -7,6 +7,8 @@ fn test_binding_creation() {
         hotkey: "F7".to_string(),
         provider: "clipboard".to_string(),
         item_id: None,
+        content: None,
+        encrypted: false,
         cli_path: None,
         input_mode: InputMode::default(),
         clipboard_clear_after_secs: None, cache_secs: None,
@@ -27,6 +29,8 @@ fn test_binding_with_item_id() {
         hotkey: "F8".to_string(),
         provider: "bitwarden".to_string(),
         item_id: Some("abc-123".to_string()),
+        content: None,
+        encrypted: false,
         cli_path: Some("/usr/local/bin/bw".to_string()),
         input_mode: InputMode::Type,
         clipboard_clear_after_secs: Some(0), cache_secs: Some(300),
@@ -117,4 +121,21 @@ provider = "clipboard"
 fn test_config_default_path() {
     let path = Config::default_path();
     assert!(path.ends_with("keyflow/keyflow.toml"));
+}
+
+#[test]
+fn test_encrypted_defaults_to_false() {
+    let toml_str = r#"
+[settings]
+clipboard_clear_after_secs = 5
+
+[[bindings]]
+name = "test"
+hotkey = "F7"
+provider = "static"
+content = "hello"
+"#;
+    let config: Config = toml::from_str(toml_str).unwrap();
+    assert!(!config.bindings[0].encrypted, "encrypted should default to false when not specified");
+    assert_eq!(config.bindings[0].content.as_deref(), Some("hello"));
 }

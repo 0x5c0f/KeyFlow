@@ -3,6 +3,7 @@
 pub mod bitwarden;
 pub mod cached;
 pub mod clipboard;
+pub mod static_provider;
 
 use crate::error::ProviderError;
 
@@ -35,4 +36,17 @@ pub fn create_provider(
         "bitwarden" => Some(Box::new(bitwarden::BitwardenProvider::new(cli_path))),
         _ => None,
     }
+}
+
+/// Create a static provider with content and encryption settings.
+pub fn create_static_provider(
+    content: String,
+    encrypted: bool,
+    encryption_key: Option<String>,
+) -> Box<dyn PasswordProvider> {
+    Box::new(static_provider::StaticProvider::new(
+        content,
+        encrypted,
+        encryption_key,
+    ))
 }

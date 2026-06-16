@@ -51,6 +51,12 @@ pub enum ProviderError {
 
     #[error("Unknown provider type: {provider_type}")]
     UnknownProvider { provider_type: String },
+
+    #[error("encryption_key not configured in [settings]")]
+    EncryptionKeyMissing,
+
+    #[error("Invalid config: {0}")]
+    InvalidConfig(String),
 }
 
 /// Errors from input simulation.

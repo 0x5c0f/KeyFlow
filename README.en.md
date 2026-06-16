@@ -9,6 +9,7 @@ A non-paste password input assistant — bypass paste-disabled password fields b
 - Any input field that disables paste functionality
 - Integration with password managers like Bitwarden
 - Formatted paste in normal editors
+- Quick input of fixed text (email addresses, API keys, etc.)
 
 ## How It Works
 
@@ -193,6 +194,51 @@ provider = "clipboard"
 input_mode = "paste"
 ```
 
+## Static Text Input
+
+In addition to retrieving content from clipboard or Bitwarden, you can define text directly in the configuration file:
+
+### Plaintext Mode
+
+```toml
+[[bindings]]
+name = "Email Address"
+hotkey = "F7"
+provider = "static"
+content = "user@example.com"
+```
+
+### Encrypted Mode
+
+For sensitive content (like API keys), you can use encrypted storage:
+
+1. Set an encryption key in the configuration file:
+
+```toml
+[settings]
+encryption_key = "your-secret-key"
+```
+
+2. Use `keyflow encrypt` command to encrypt content:
+
+```bash
+keyflow encrypt "your-api-key"
+# Output: enc:v1:aGVsbG8gd29ybGQ...
+```
+
+3. Use encrypted content in bindings:
+
+```toml
+[[bindings]]
+name = "API Key"
+hotkey = "F8"
+provider = "static"
+content = "enc:v1:aGVsbG8gd29ybGQ..."
+encrypted = true
+```
+
+**Security Note:** The encryption key is stored in the configuration file, alongside the encrypted content. This provides basic protection against casual viewing of the configuration file.
+
 ## Clipboard Clearing
 
 Each binding can independently configure clipboard clearing time:
@@ -235,7 +281,8 @@ keyflow
 ├── config
 │   ├── show         # Show current configuration
 │   └── path         # Show config file path
-└── unlock           # Unlock Bitwarden vault
+├── unlock           # Unlock Bitwarden vault
+└── encrypt          # Encrypt text (for static bindings)
 ```
 
 ## Configuration File
@@ -247,6 +294,7 @@ Full configuration example: [`keyflow.toml.example`](keyflow.toml.example)
 ```toml
 [settings]
 clipboard_clear_after_secs = 5
+# encryption_key = "your-secret-key"  # For encrypting static binding content
 
 [[bindings]]
 name = "VNC Password"
@@ -262,6 +310,12 @@ hotkey = "F8"
 provider = "clipboard"
 input_mode = "paste"
 clipboard_clear_after_secs = 0
+
+[[bindings]]
+name = "Email Address"
+hotkey = "F9"
+provider = "static"
+content = "user@example.com"
 ```
 
 ## Development
@@ -290,6 +344,7 @@ src/
 ├── lib.rs          # Library entry
 ├── main.rs         # CLI entry
 ├── error.rs        # Unified error types
+├── crypto.rs       # Encryption/decryption (AES-256-GCM + Argon2id)
 ├── config/         # Configuration management (TOML parsing)
 │   ├── mod.rs      # Config, Settings
 │   └── binding.rs  # Binding, InputMode
@@ -297,6 +352,7 @@ src/
 │   ├── mod.rs      # PasswordProvider trait
 │   ├── clipboard.rs# Clipboard provider
 │   ├── bitwarden.rs# Bitwarden CLI provider
+│   ├── static_provider.rs # Static text provider
 │   └── cached.rs   # Password cache wrapper
 ├── input/          # Input simulation (keyboard / mouse, based on enigo)
 │   ├── mod.rs      # InputEngine trait

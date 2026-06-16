@@ -6,6 +6,7 @@ pub mod status;
 pub mod bind;
 pub mod config_cmd;
 pub mod unlock;
+pub mod encrypt;
 
 use clap::{Parser, Subcommand};
 
@@ -36,6 +37,11 @@ pub enum Commands {
     Config(ConfigCommands),
     /// Unlock Bitwarden vault
     Unlock,
+    /// Encrypt text for use in static bindings
+    Encrypt {
+        /// Plaintext to encrypt (if omitted, reads from stdin)
+        plaintext: Option<String>,
+    },
 }
 
 #[derive(Subcommand)]

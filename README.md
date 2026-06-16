@@ -9,6 +9,7 @@
 - 任何禁用粘贴功能的输入框
 - 配合 Bitwarden 等密码管理器使用
 - 正常编辑器中的格式化粘贴
+- 固定文本快速输入（邮箱、API Key 等）
 
 ## 工作原理
 
@@ -193,6 +194,51 @@ provider = "clipboard"
 input_mode = "paste"
 ```
 
+## 静态文本输入
+
+除了从剪贴板或 Bitwarden 获取内容，还可以直接在配置文件中定义要输入的文本：
+
+### 明文模式
+
+```toml
+[[bindings]]
+name = "邮箱地址"
+hotkey = "F7"
+provider = "static"
+content = "user@example.com"
+```
+
+### 加密模式
+
+对于敏感内容（如 API Key），可以使用加密存储：
+
+1. 在配置文件中设置加密密钥：
+
+```toml
+[settings]
+encryption_key = "your-secret-key"
+```
+
+2. 使用 `keyflow encrypt` 命令加密内容：
+
+```bash
+keyflow encrypt "your-api-key"
+# 输出: enc:v1:aGVsbG8gd29ybGQ...
+```
+
+3. 在绑定中使用加密内容：
+
+```toml
+[[bindings]]
+name = "API Key"
+hotkey = "F8"
+provider = "static"
+content = "enc:v1:aGVsbG8gd29ybGQ..."
+encrypted = true
+```
+
+**安全说明：** 加密密钥存储在配置文件中，与加密内容在同一位置。这提供了基本的保护，防止配置文件被直接查看时泄露敏感内容。
+
 ## 剪贴板清理
 
 每个 binding 可独立配置剪贴板清理时间：
@@ -235,7 +281,8 @@ keyflow
 ├── config
 │   ├── show         # 显示当前配置
 │   └── path         # 显示配置文件路径
-└── unlock           # 解锁 Bitwarden
+├── unlock           # 解锁 Bitwarden
+└── encrypt          # 加密文本（用于 static 绑定）
 ```
 
 ## 配置文件
@@ -247,6 +294,7 @@ keyflow
 ```toml
 [settings]
 clipboard_clear_after_secs = 5
+# encryption_key = "your-secret-key"  # 用于加密 static 绑定的内容
 
 [[bindings]]
 name = "VNC 密码"
@@ -262,6 +310,12 @@ hotkey = "F8"
 provider = "clipboard"
 input_mode = "paste"
 clipboard_clear_after_secs = 0
+
+[[bindings]]
+name = "邮箱地址"
+hotkey = "F9"
+provider = "static"
+content = "user@example.com"
 ```
 
 ## 开发
@@ -290,6 +344,7 @@ src/
 ├── lib.rs          # 库入口
 ├── main.rs         # CLI 入口
 ├── error.rs        # 统一错误类型
+├── crypto.rs       # 加密/解密（AES-256-GCM + Argon2id）
 ├── config/         # 配置管理（TOML 解析）
 │   ├── mod.rs      # Config、Settings
 │   └── binding.rs  # Binding、InputMode
@@ -297,6 +352,7 @@ src/
 │   ├── mod.rs      # PasswordProvider trait
 │   ├── clipboard.rs# 剪贴板提供者
 │   ├── bitwarden.rs# Bitwarden CLI 提供者
+│   ├── static_provider.rs # 静态文本提供者
 │   └── cached.rs   # 密码缓存包装器
 ├── input/          # 输入模拟（键盘 / 鼠标，基于 enigo）
 │   ├── mod.rs      # InputEngine trait
