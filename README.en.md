@@ -36,7 +36,7 @@ A non-paste password input assistant — bypass paste-disabled password fields b
 ### Build from Source
 
 ```bash
-git clone https://github.com/your-user/keyflow.git
+git clone https://github.com/0x5c0f/keyflow.git
 cd keyflow
 make build
 make install  # Install to ~/.local/bin/ (no sudo required)

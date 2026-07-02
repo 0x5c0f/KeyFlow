@@ -36,7 +36,7 @@
 ### 从源码构建
 
 ```bash
-git clone https://github.com/your-user/keyflow.git
+git clone https://github.com/0x5c0f/keyflow.git
 cd keyflow
 make build
 make install  # 安装到 ~/.local/bin/（无需 sudo）
